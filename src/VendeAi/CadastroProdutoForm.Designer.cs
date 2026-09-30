@@ -1,6 +1,6 @@
 ﻿namespace VendeAi;
 
-partial class Form1
+partial class CadastroProdutoForm
 {
     /// <summary>
     ///  Required designer variable.
