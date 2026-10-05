@@ -28,10 +28,18 @@ partial class CadastroProdutoForm
     /// </summary>
     private void InitializeComponent()
     {
-        components = new System.ComponentModel.Container();
+        SuspendLayout();
+        // 
+        // CadastroProdutoForm
+        // 
+        AutoScaleDimensions = new SizeF(7F, 15F);
         AutoScaleMode = AutoScaleMode.Font;
         ClientSize = new Size(800, 450);
-        Text = "Form1";
+        Name = "CadastroProdutoForm";
+        StartPosition = FormStartPosition.CenterScreen;
+        Text = "Cadastrar Produto - VendeAí";
+        WindowState = FormWindowState.Maximized;
+        ResumeLayout(false);
     }
 
     #endregion
