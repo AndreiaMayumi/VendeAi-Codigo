@@ -14,6 +14,10 @@ public class ProdutoController
 
     public string Cadastrar(Produto produto)
     {
+        // ============================
+        // VALIDAÇÕES BÁSICAS
+        // ============================
+
         if (string.IsNullOrWhiteSpace(produto.Nome))
         {
             return "O nome do produto é obrigatório.";
@@ -29,20 +33,63 @@ public class ProdutoController
             return "A categoria é obrigatória.";
         }
 
-        if (produto.QuantidadeMinimaVenda < 1)
+        // ============================
+        // VALIDAÇÃO DAS MODALIDADES
+        // ============================
+
+        if (produto.Modalidades == null || produto.Modalidades.Count == 0)
         {
-            return "A quantidade mínima de venda deve ser maior ou igual a 1.";
+            return "O produto deve possuir pelo menos uma modalidade de venda.";
         }
 
-        if (produto.PrecoVenda <= 0)
+        foreach (ProdutoModalidade modalidade in produto.Modalidades)
         {
-            return "O preço de venda deve ser maior que zero.";
+            if (modalidade.QuantidadeMinimaVenda < 1)
+            {
+                return $"A quantidade mínima da modalidade " +
+                       $"{modalidade.Modalidade} deve ser maior ou igual a 1.";
+            }
+
+            if (modalidade.PrecoVenda <= 0)
+            {
+                return $"O preço de venda da modalidade " +
+                       $"{modalidade.Modalidade} deve ser maior que zero.";
+            }
+
+            if (modalidade.PrecoCusto.HasValue &&
+                modalidade.PrecoCusto.Value < 0)
+            {
+                return $"O preço de custo da modalidade " +
+                       $"{modalidade.Modalidade} não pode ser negativo.";
+            }
         }
+
+        // ============================
+        // MODALIDADE DUPLICADA
+        // ============================
+
+        bool possuiModalidadeDuplicada =
+            produto.Modalidades
+                .GroupBy(modalidade => modalidade.Modalidade)
+                .Any(grupo => grupo.Count() > 1);
+
+        if (possuiModalidadeDuplicada)
+        {
+            return "Não é permitido cadastrar a mesma modalidade mais de uma vez.";
+        }
+
+        // ============================
+        // SKU DUPLICADO
+        // ============================
 
         if (produtoRepository.ExisteSku(produto.CodigoSku))
         {
             return "Já existe um produto cadastrado com este SKU.";
         }
+
+        // ============================
+        // CADASTRO
+        // ============================
 
         produto.Status = StatusProduto.Ativo;
 
