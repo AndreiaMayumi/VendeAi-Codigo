@@ -14,6 +14,16 @@ public enum StatusProduto
     Inativo
 }
 
+public enum CategoriaProduto
+{
+    Roupas,
+    Cosmeticos,
+    Acessorios,
+    Eletronicos,
+    Alimentos,
+    Outros
+}
+
 public class Produto
 {
     public required string Nome { get; set; }
@@ -22,7 +32,7 @@ public class Produto
 
     public string? Descricao { get; set; }
 
-    public required string Categoria { get; set; }
+    public required CategoriaProduto Categoria { get; set; }
 
     public string? Marca { get; set; }
 

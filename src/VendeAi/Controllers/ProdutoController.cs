@@ -28,9 +28,9 @@ public class ProdutoController
             return "O código SKU é obrigatório.";
         }
 
-        if (string.IsNullOrWhiteSpace(produto.Categoria))
+        if (!Enum.IsDefined(produto.Categoria))
         {
-            return "A categoria é obrigatória.";
+            return "A categoria informada é inválida.";
         }
 
         // ============================

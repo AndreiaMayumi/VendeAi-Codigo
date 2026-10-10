@@ -1100,9 +1100,19 @@ public partial class CadastroProdutoForm : Form
                     ? null
                     : txtDescricao.Text.Trim(),
 
-            Categoria =
-                cmbCategoria.SelectedItem!
-                    .ToString()!,
+            Categoria = cmbCategoria.SelectedIndex switch
+            {
+                0 => CategoriaProduto.Roupas,
+                1 => CategoriaProduto.Cosmeticos,
+                2 => CategoriaProduto.Acessorios,
+                3 => CategoriaProduto.Eletronicos,
+                4 => CategoriaProduto.Alimentos,
+                5 => CategoriaProduto.Outros,
+
+                _ => throw new InvalidOperationException(
+                "Categoria inválida."
+                )
+            },
 
             Marca =
                 string.IsNullOrWhiteSpace(
