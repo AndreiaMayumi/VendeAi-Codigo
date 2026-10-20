@@ -1,8 +1,9 @@
+
 namespace VendeAi.Models;
 
 public class ProdutoModalidade
 {
-    public ModalidadeVenda Modalidade { get; set; }
+    public Modalidade Modalidade { get; set; }
 
     public int QuantidadeMinimaVenda { get; set; }
 

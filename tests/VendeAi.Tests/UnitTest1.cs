@@ -15,18 +15,27 @@ public class ProdutoTests
         controller = new ProdutoController(repository);
     }
 
-    private Produto CriarProdutoValido()
+    
+private Produto CriarProdutoValido()
+{
+    return new Produto
     {
-        return new Produto
+        Nome = "Regata básica",
+        CodigoSku = "REG001",
+        Categoria = Categoria.Roupas,
+
+        Modalidades = new List<ProdutoModalidade>
         {
-            Nome = "Regata básica",
-            CodigoSku = "REG001",
-            Categoria = "Roupas",
-            Modalidade = ModalidadeVenda.Varejo,
-            QuantidadeMinimaVenda = 1,
-            PrecoVenda = 39.90m
-        };
-    }
+            new ProdutoModalidade
+            {
+                Modalidade = Modalidade.Varejo,
+                QuantidadeMinimaVenda = 1,
+                PrecoVenda = 39.90m
+            }
+        }
+    };
+}
+
 
     [Fact]
     public void DeveCadastrarProdutoValido()

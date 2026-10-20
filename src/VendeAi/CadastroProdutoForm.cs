@@ -624,7 +624,7 @@ public partial class CadastroProdutoForm : Form
             return;
         }
 
-        ModalidadeVenda modalidadeSelecionada =
+        Modalidade modalidadeSelecionada =
             ObterModalidadeSelecionada();
 
         bool jaExiste = modalidades.Any(
@@ -671,14 +671,14 @@ public partial class CadastroProdutoForm : Form
     // OBTER MODALIDADE
     // ============================
 
-    private ModalidadeVenda ObterModalidadeSelecionada()
+    private Modalidade ObterModalidadeSelecionada()
     {
         return cmbModalidade.SelectedIndex switch
         {
-            0 => ModalidadeVenda.Varejo,
-            1 => ModalidadeVenda.Atacado,
-            2 => ModalidadeVenda.PacoteInternacional,
-            3 => ModalidadeVenda.LoteNacional,
+            0 => Modalidade.Varejo,
+            1 => Modalidade.Atacado,
+            2 => Modalidade.Pacote,
+            3 => Modalidade.Lote,
 
             _ => throw new InvalidOperationException(
                 "Modalidade de venda inválida."
@@ -805,20 +805,20 @@ public partial class CadastroProdutoForm : Form
     // ============================
 
     private string FormatarNomeModalidade(
-        ModalidadeVenda modalidade)
+        Modalidade modalidade)
     {
         return modalidade switch
         {
-            ModalidadeVenda.Varejo =>
+            Modalidade.Varejo =>
                 "Varejo",
 
-            ModalidadeVenda.Atacado =>
+            Modalidade.Atacado =>
                 "Atacado",
 
-            ModalidadeVenda.PacoteInternacional =>
+            Modalidade.Pacote =>
                 "Pacote Internacional",
 
-            ModalidadeVenda.LoteNacional =>
+            Modalidade.Lote =>
                 "Lote Nacional",
 
             _ =>
@@ -1102,12 +1102,9 @@ public partial class CadastroProdutoForm : Form
 
             Categoria = cmbCategoria.SelectedIndex switch
             {
-                0 => CategoriaProduto.Roupas,
-                1 => CategoriaProduto.Cosmeticos,
-                2 => CategoriaProduto.Acessorios,
-                3 => CategoriaProduto.Eletronicos,
-                4 => CategoriaProduto.Alimentos,
-                5 => CategoriaProduto.Outros,
+                0 => Categoria.Roupas,
+                1 => Categoria.Cosmeticos,
+                2 => Categoria.Acessorios,
 
                 _ => throw new InvalidOperationException(
                 "Categoria inválida."

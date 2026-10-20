@@ -1,11 +1,12 @@
+
 namespace VendeAi.Models;
 
-public enum ModalidadeVenda
+public enum Modalidade
 {
     Varejo,
     Atacado,
-    PacoteInternacional,
-    LoteNacional
+    Pacote,
+    Lote
 }
 
 public enum StatusProduto
@@ -14,25 +15,23 @@ public enum StatusProduto
     Inativo
 }
 
-public enum CategoriaProduto
+public enum Categoria
 {
     Roupas,
     Cosmeticos,
-    Acessorios,
-    Eletronicos,
-    Alimentos,
-    Outros
+    Acessorios
 }
 
 public class Produto
 {
     public required string Nome { get; set; }
 
+    // Identificador único do produto
     public required string CodigoSku { get; set; }
 
     public string? Descricao { get; set; }
 
-    public required CategoriaProduto Categoria { get; set; }
+    public required Categoria Categoria { get; set; }
 
     public string? Marca { get; set; }
 
