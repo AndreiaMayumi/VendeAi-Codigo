@@ -42,19 +42,20 @@ public partial class CadastroProdutoForm : Form
     private NumericUpDown nudPrecoCusto = null!;
 
     private PictureBox picProduto = null!;
+    private Label lblTextoImagem = null!;
+    private Label lblPreviewNome = null!;
+    private Label lblPreviewDetalhes = null!;
+    private Label lblPreviewPreco = null!;
+    private Label lblPreviewModalidade = null!;
+    private PictureBox picPreview = null!;
 
     private Button btnSelecionarImagem = null!;
-    private Button btnAdicionarModalidade = null!;
     private Button btnSalvar = null!;
     private Button btnCancelar = null!;
+    private Button btnAdicionarVariacao = null!;
 
-    private FlowLayoutPanel painelModalidades = null!;
-    private Label lblNenhumaModalidade = null!;
 
     private string? caminhoImagem;
-
-    // Lista temporária das modalidades do produto
-    private readonly List<ProdutoModalidade> modalidades = new();
 
     private readonly ProdutoRepository produtoRepository;
     private readonly ProdutoController produtoController;
@@ -80,257 +81,188 @@ public partial class CadastroProdutoForm : Form
     private void CriarInterface()
     {
         SuspendLayout();
-
         Text = "Cadastrar Produto - VendeAí";
         BackColor = corFundo;
         WindowState = FormWindowState.Maximized;
-        MinimumSize = new Size(1100, 700);
+        MinimumSize = new Size(1050, 700);
         Font = new Font("Segoe UI", 10);
         AutoScroll = false;
-
         Controls.Clear();
 
-        // ============================
-        // MENU LATERAL
-        // ============================
-
-        Panel menu = new Panel
-        {
-            Dock = DockStyle.Left,
-            Width = 230,
-            BackColor = corMenu
-        };
-
+        Panel menu = new Panel { Dock = DockStyle.Left, Width = 230, BackColor = corMenu };
         Controls.Add(menu);
-
-        Label logo = new Label
+        menu.Controls.Add(new Label
         {
-            Text = "VendeAí",
-            ForeColor = Color.White,
-            Font = new Font("Segoe UI", 22, FontStyle.Bold),
-            AutoSize = true,
-            Location = new Point(30, 35)
-        };
-
-        menu.Controls.Add(logo);
-
-        Label logoDescricao = new Label
+            Text = "🛒  VendeAí", ForeColor = Color.White,
+            Font = new Font("Segoe UI", 20, FontStyle.Bold),
+            Location = new Point(20, 34), Size = new Size(205, 42)
+        });
+        menu.Controls.Add(new Label
         {
-            Text = "Gestão de vendas",
-            ForeColor = Color.FromArgb(160, 175, 200),
-            Font = new Font("Segoe UI", 9),
-            AutoSize = true,
-            Location = new Point(32, 75)
-        };
-
-        menu.Controls.Add(logoDescricao);
-
-        // ============================
-        // ITENS DO MENU
-        // ============================
+            Text = "Gestão de vendas", ForeColor = Color.FromArgb(160, 175, 200),
+            Font = new Font("Segoe UI", 9), Location = new Point(34, 78), AutoSize = true
+        });
 
         int menuY = 135;
-
-        CriarBotaoMenu(menu, "⌂", "Painel", menuY, false);
-        menuY += 55;
-
-        CriarBotaoMenu(menu, "▣", "Produtos", menuY, true);
-        menuY += 55;
-
-        CriarBotaoMenu(menu, "♙", "Clientes", menuY, false);
-        menuY += 55;
-
-        CriarBotaoMenu(menu, "▤", "Pedidos", menuY, false);
-        menuY += 55;
-
-        CriarBotaoMenu(menu, "▥", "Relatórios", menuY, false);
-        menuY += 55;
-
-        CriarBotaoMenu(menu, "⚿", "Permissões", menuY, false);
-
-        Button btnConfiguracoes = CriarBotaoMenu(
-            menu,
-            "⚙",
-            "Configurações",
-            0,
-            false
-        );
-
-        btnConfiguracoes.Dock = DockStyle.Bottom;
-        btnConfiguracoes.Height = 60;
-
-        // ============================
-        // ÁREA PRINCIPAL
-        // ============================
-
-        Panel principal = new Panel
+        foreach (var item in new (string Icone, string Texto)[]
         {
-            Dock = DockStyle.Fill,
-            BackColor = corFundo,
-            AutoScroll = true
-        };
+            ("⌂", "Painel"), ("▣", "Produtos"), ("♙", "Clientes"),
+            ("▤", "Pedidos"), ("▥", "Compras"), ("▥", "Separação"),
+            ("⚿", "Permissões")
+        })
+        {
+            CriarBotaoMenu(menu, item.Icone, item.Texto, menuY, item.Texto == "Produtos");
+            menuY += 55;
+        }
+        Button configuracoes = CriarBotaoMenu(menu, "⚙", "Configurações", 0, false);
+        configuracoes.Dock = DockStyle.Bottom;
+        configuracoes.Height = 60;
 
+        Panel principal = new Panel { Dock = DockStyle.Fill, BackColor = corFundo, AutoScroll = true };
         Controls.Add(principal);
         principal.BringToFront();
 
-        // ============================
-        // TOPO
-        // ============================
-
-        Panel topo = new Panel
-        {
-            Dock = DockStyle.Top,
-            Height = 75,
-            BackColor = Color.White
-        };
-
+        Panel topo = new Panel { Dock = DockStyle.Top, Height = 50, BackColor = Color.White };
         principal.Controls.Add(topo);
-
-        Label breadcrumb = new Label
-        {
-            Text = "Produtos   ›   Cadastrar produto",
-            ForeColor = corTextoSecundario,
-            Font = new Font("Segoe UI", 9),
-            AutoSize = true,
-            Location = new Point(45, 29)
-        };
-
-        topo.Controls.Add(breadcrumb);
 
         Label usuario = new Label
         {
-            Text = "Mayumi",
-            ForeColor = corTexto,
-            Font = new Font("Segoe UI", 9, FontStyle.Bold),
-            AutoSize = true,
-            Anchor = AnchorStyles.Top | AnchorStyles.Right
+            Text = "Mayumi  ▾", ForeColor = corTexto,
+            Font = new Font("Segoe UI", 9, FontStyle.Bold), AutoSize = true
         };
-
         topo.Controls.Add(usuario);
+        topo.Resize += (_, _) => usuario.Location =
+            new Point(Math.Max(20, topo.ClientSize.Width - usuario.Width - 35), 26);
 
-        topo.Resize += (s, e) =>
-        {
-            usuario.Location = new Point(
-                topo.ClientSize.Width - usuario.Width - 45,
-                28
-            );
-        };
-
-        // ============================
-        // CONTEÚDO
-        // ============================
-
+        // O formulário e os cards laterais ficam na mesma linha.
+        // A largura fixa corresponde ao desenho dos campos internos.
         Panel conteudo = new Panel
         {
-            Location = new Point(45, 110),
-            Width = 1050,
-            Height = 1000,
+            Location = new Point(20, 90),
+            Width = 1040,
+            Height = 1020,
             BackColor = corFundo
         };
-
         principal.Controls.Add(conteudo);
 
-        Label titulo = new Label
+        conteudo.Controls.Add(new Label
         {
-            Text = "Cadastrar produto",
-            ForeColor = corTexto,
+            Text = "Produtos   ›   Cadastrar produto", ForeColor = corTextoSecundario,
+            Font = new Font("Segoe UI", 9), Location = new Point(0, 0), AutoSize = true
+        });
+        conteudo.Controls.Add(new Label
+        {
+            Text = "Cadastrar Produto", ForeColor = corTexto,
             Font = new Font("Segoe UI", 24, FontStyle.Bold),
-            AutoSize = true,
-            Location = new Point(0, 0)
-        };
-
-        conteudo.Controls.Add(titulo);
-
-        Label subtitulo = new Label
+            Location = new Point(0, 45), AutoSize = true
+        });
+        conteudo.Controls.Add(new Label
         {
             Text = "Preencha as informações do produto para adicioná-lo ao sistema.",
-            ForeColor = corTextoSecundario,
-            Font = new Font("Segoe UI", 10),
-            AutoSize = true,
-            Location = new Point(3, 48)
-        };
+            ForeColor = corTextoSecundario, Font = new Font("Segoe UI", 10),
+            Location = new Point(3, 96), AutoSize = true
+        });
 
-        conteudo.Controls.Add(subtitulo);
+        btnAdicionarVariacao = CriarBotaoAcao("+  Adicionar variação", false);
+        btnAdicionarVariacao.Name = "btnAdicionarVariacao";
+        btnAdicionarVariacao.Size = new Size(205, 42);
+        btnAdicionarVariacao.Click += (_, _) => MessageBox.Show(
+            "O cadastro de variações (cor e tamanho) ainda será implementado. " +
+            "Por enquanto, selecione a modalidade de venda no formulário e salve o produto.",
+            "Adicionar variação", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        conteudo.Controls.Add(btnAdicionarVariacao);
 
-        // ============================
-        // CARD PRINCIPAL
-        // ============================
+        Button btnVoltar = CriarBotaoAcao("←  Voltar para a lista", false);
+        btnVoltar.Name = "btnVoltar";
+        btnVoltar.Size = new Size(195, 42);
+        btnVoltar.Click += (_, _) => MessageBox.Show(
+            "A tela de listagem de produtos ainda não foi criada.",
+            "VendeAí", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        conteudo.Controls.Add(btnVoltar);
 
-        Panel card = CriarCard(
-            new Point(0, 90),
-            new Size(710, 790)
-        );
-
+        Panel card = CriarCard(new Point(0, 155), new Size(710, 675));
+        card.Name = "cardProduto";
         conteudo.Controls.Add(card);
-
-        // ============================
-        // CARD IMAGEM
-        // ============================
-
-        Panel cardImagem = CriarCard(
-            new Point(735, 90),
-            new Size(300, 350)
-        );
-
-        conteudo.Controls.Add(cardImagem);
-
         CriarCamposProduto(card);
+
+        Panel cardImagem = CriarCard(new Point(730, 155), new Size(290, 350));
+        cardImagem.Name = "cardImagem";
+        conteudo.Controls.Add(cardImagem);
         CriarAreaImagem(cardImagem);
 
-        // ============================
-        // BOTÕES INFERIORES
-        // ============================
+        Panel cardPreview = CriarCard(new Point(730, 525), new Size(290, 445));
+        cardPreview.Name = "cardPreview";
+        conteudo.Controls.Add(cardPreview);
+        CriarPreVisualizacao(cardPreview);
 
-        btnCancelar = new Button
+        btnCancelar = CriarBotaoAcao("Cancelar", false);
+        btnCancelar.Name = "btnCancelar";
+        btnCancelar.Size = new Size(145, 44);
+        btnCancelar.Location = new Point(30, 610);
+        btnCancelar.ForeColor = Color.FromArgb(190, 40, 55);
+        btnCancelar.FlatAppearance.BorderColor = Color.FromArgb(220, 90, 100);
+        btnCancelar.MouseEnter += (_, _) =>
         {
-            Text = "Cancelar",
-            Size = new Size(140, 45),
-            Location = new Point(0, 905),
-            FlatStyle = FlatStyle.Flat,
-            BackColor = Color.DarkRed,
-            ForeColor = Color.White,
-            Cursor = Cursors.Hand,
-            Font = new Font("Segoe UI", 10, FontStyle.Bold)
+            btnCancelar.BackColor = Color.FromArgb(190, 40, 55);
+            btnCancelar.ForeColor = Color.White;
         };
-
-        btnCancelar.FlatAppearance.BorderColor = corBorda;
-        btnCancelar.FlatAppearance.BorderSize = 1;
-        btnCancelar.Click += (s, e) => Close();
-
-        conteudo.Controls.Add(btnCancelar);
-
-        btnSalvar = new Button
+        btnCancelar.MouseLeave += (_, _) =>
         {
-            Text = "Salvar produto",
-            Size = new Size(190, 45),
-            Location = new Point(845, 905),
-            FlatStyle = FlatStyle.Flat,
-            BackColor = corPrimaria,
-            ForeColor = Color.White,
-            Cursor = Cursors.Hand,
-            Font = new Font("Segoe UI", 10, FontStyle.Bold)
+            btnCancelar.BackColor = Color.White;
+            btnCancelar.ForeColor = Color.FromArgb(190, 40, 55);
         };
+        btnCancelar.Click += (_, _) => Close();
+        card.Controls.Add(btnCancelar);
 
-        btnSalvar.FlatAppearance.BorderSize = 0;
-
-        btnSalvar.MouseEnter += (s, e) =>
-        {
-            btnSalvar.BackColor = corPrimariaHover;
-        };
-
-        btnSalvar.MouseLeave += (s, e) =>
-        {
-            btnSalvar.BackColor = corPrimaria;
-        };
-
+        btnSalvar = CriarBotaoAcao("Salvar", true);
+        btnSalvar.Name = "btnSalvar";
+        btnSalvar.Size = new Size(190, 44);
+        btnSalvar.Location = new Point(490, 610);
         btnSalvar.Click += SalvarProduto;
+        card.Controls.Add(btnSalvar);
 
-        conteudo.Controls.Add(btnSalvar);
-
-        ArredondarControle(btnSalvar, 7);
-        ArredondarControle(btnCancelar, 7);
-
+        txtNome.TextChanged += (_, _) => AtualizarPreVisualizacao();
+        txtMarca.TextChanged += (_, _) => AtualizarPreVisualizacao();
+        cmbCategoria.SelectedIndexChanged += (_, _) => AtualizarPreVisualizacao();
+        cmbModalidade.SelectedIndexChanged += (_, _) => AtualizarPreVisualizacao();
+        nudPrecoVenda.ValueChanged += (_, _) => AtualizarPreVisualizacao();
+        AjustarLayoutConteudo(conteudo);
+        AtualizarPreVisualizacao();
         ResumeLayout();
+    }
+
+    private Button CriarBotaoAcao(string texto, bool primario)
+    {
+        Button botao = new Button
+        {
+            Text = texto, FlatStyle = FlatStyle.Flat,
+            BackColor = primario ? corPrimaria : Color.White,
+            ForeColor = primario ? Color.White : corPrimaria,
+            Cursor = Cursors.Hand, Font = new Font("Segoe UI", 9, FontStyle.Bold)
+        };
+        botao.FlatAppearance.BorderSize = primario ? 0 : 1;
+        botao.FlatAppearance.BorderColor = corPrimaria;
+        botao.MouseEnter += (_, _) => { if (primario) botao.BackColor = corPrimariaHover; };
+        botao.MouseLeave += (_, _) => { if (primario) botao.BackColor = corPrimaria; };
+        return botao;
+    }
+
+    private void AjustarLayoutConteudo(Panel conteudo)
+    {
+        // Evita que os cards de imagem e pré-visualização caiam
+        // para baixo do formulário em resoluções comuns.
+        Panel card = (Panel)conteudo.Controls["cardProduto"]!;
+        Panel imagem = (Panel)conteudo.Controls["cardImagem"]!;
+        Panel preview = (Panel)conteudo.Controls["cardPreview"]!;
+        Button voltar = (Button)conteudo.Controls["btnVoltar"]!;
+        Button variacao = (Button)conteudo.Controls["btnAdicionarVariacao"]!;
+
+        card.Location = new Point(0, 155);
+        imagem.Location = new Point(730, 155);
+        preview.Location = new Point(730, 525);
+        variacao.Location = new Point(conteudo.Width - variacao.Width - 20, 45);
+        voltar.Location = new Point(variacao.Left - voltar.Width - 12, 45);
+        conteudo.Height = 1020;
     }
 
     // ============================
@@ -397,10 +329,7 @@ public partial class CadastroProdutoForm : Form
             {
                 "Roupas",
                 "Cosméticos",
-                "Acessórios",
-                "Eletrônicos",
-                "Alimentos",
-                "Outros"
+                "Acessórios"
             }
         );
 
@@ -513,158 +442,6 @@ public partial class CadastroProdutoForm : Form
         nudPrecoCusto.Maximum = 1000000;
         nudPrecoCusto.ThousandsSeparator = true;
 
-        // ============================
-        // BOTÃO ADICIONAR MODALIDADE
-        // ============================
-
-        btnAdicionarModalidade = new Button
-        {
-            Text = "+ Adicionar modalidade",
-            Location = new Point(445, 575),
-            Size = new Size(225, 40),
-            FlatStyle = FlatStyle.Flat,
-            BackColor = Color.White,
-            ForeColor = corPrimaria,
-            Cursor = Cursors.Hand,
-            Font = new Font(
-                "Segoe UI",
-                9,
-                FontStyle.Bold
-            )
-        };
-
-        btnAdicionarModalidade.FlatAppearance.BorderColor = corPrimaria;
-        btnAdicionarModalidade.FlatAppearance.BorderSize = 1;
-
-        btnAdicionarModalidade.Click += AdicionarModalidade;
-
-        card.Controls.Add(btnAdicionarModalidade);
-
-        ArredondarControle(btnAdicionarModalidade, 6);
-
-        // ============================
-        // MODALIDADES ADICIONADAS
-        // ============================
-
-        Label tituloModalidades = CriarTituloSecao(
-            "Modalidades adicionadas",
-            30,
-            635
-        );
-
-        card.Controls.Add(tituloModalidades);
-
-        painelModalidades = new FlowLayoutPanel
-        {
-            Location = new Point(30, 670),
-            Size = new Size(640, 90),
-            AutoScroll = true,
-            FlowDirection = FlowDirection.TopDown,
-            WrapContents = false,
-            BackColor = Color.FromArgb(248, 250, 253),
-            Padding = new Padding(5)
-        };
-
-        card.Controls.Add(painelModalidades);
-
-        lblNenhumaModalidade = new Label
-        {
-            Text = "Nenhuma modalidade adicionada.",
-            ForeColor = corTextoSecundario,
-            Font = new Font("Segoe UI", 9),
-            AutoSize = true,
-            Margin = new Padding(8, 10, 0, 0)
-        };
-
-        painelModalidades.Controls.Add(lblNenhumaModalidade);
-    }
-
-    // ============================
-    // ADICIONAR MODALIDADE
-    // ============================
-
-    private void AdicionarModalidade(object? sender, EventArgs e)
-    {
-        if (cmbModalidade.SelectedIndex == -1)
-        {
-            MessageBox.Show(
-                "Selecione uma modalidade de venda.",
-                "Campo obrigatório",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Warning
-            );
-
-            cmbModalidade.Focus();
-            return;
-        }
-
-        if (nudQuantidadeMinima.Value < 1)
-        {
-            MessageBox.Show(
-                "A quantidade mínima deve ser maior ou igual a 1.",
-                "Valor inválido",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Warning
-            );
-
-            nudQuantidadeMinima.Focus();
-            return;
-        }
-
-        if (nudPrecoVenda.Value <= 0)
-        {
-            MessageBox.Show(
-                "O preço de venda deve ser maior que zero.",
-                "Valor inválido",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Warning
-            );
-
-            nudPrecoVenda.Focus();
-            return;
-        }
-
-        Modalidade modalidadeSelecionada =
-            ObterModalidadeSelecionada();
-
-        bool jaExiste = modalidades.Any(
-            modalidade =>
-                modalidade.Modalidade == modalidadeSelecionada
-        );
-
-        if (jaExiste)
-        {
-            MessageBox.Show(
-                "Essa modalidade já foi adicionada ao produto.",
-                "Modalidade duplicada",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Warning
-            );
-
-            return;
-        }
-
-        ProdutoModalidade novaModalidade =
-            new ProdutoModalidade
-            {
-                Modalidade = modalidadeSelecionada,
-
-                QuantidadeMinimaVenda =
-                    (int)nudQuantidadeMinima.Value,
-
-                PrecoVenda =
-                    nudPrecoVenda.Value,
-
-                PrecoCusto =
-                    nudPrecoCusto.Value > 0
-                        ? nudPrecoCusto.Value
-                        : null
-            };
-
-        modalidades.Add(novaModalidade);
-
-        AtualizarListaModalidades();
-        LimparCamposModalidade();
     }
 
     // ============================
@@ -687,332 +464,138 @@ public partial class CadastroProdutoForm : Form
     }
 
     // ============================
-    // ATUALIZAR LISTA DE MODALIDADES
-    // ============================
-
-    private void AtualizarListaModalidades()
-    {
-        painelModalidades.Controls.Clear();
-
-        if (modalidades.Count == 0)
-        {
-            painelModalidades.Controls.Add(
-                lblNenhumaModalidade
-            );
-
-            return;
-        }
-
-        foreach (ProdutoModalidade modalidade in modalidades)
-        {
-            Panel linha = CriarLinhaModalidade(modalidade);
-
-            painelModalidades.Controls.Add(linha);
-        }
-    }
-
-    // ============================
-    // CRIAR LINHA DA MODALIDADE
-    // ============================
-
-    private Panel CriarLinhaModalidade(
-        ProdutoModalidade modalidade)
-    {
-        Panel linha = new Panel
-        {
-            Width = 605,
-            Height = 38,
-            BackColor = Color.White,
-            Margin = new Padding(0, 0, 0, 5)
-        };
-
-        string nomeModalidade =
-            FormatarNomeModalidade(modalidade.Modalidade);
-
-        string precoCusto =
-            modalidade.PrecoCusto.HasValue
-                ? $"R$ {modalidade.PrecoCusto.Value:N2}"
-                : "Não informado";
-
-        Label descricao = new Label
-        {
-            Text =
-                $"{nomeModalidade}   |   " +
-                $"Mín.: {modalidade.QuantidadeMinimaVenda}   |   " +
-                $"Venda: R$ {modalidade.PrecoVenda:N2}   |   " +
-                $"Custo: {precoCusto}",
-
-            ForeColor = corTexto,
-
-            Font = new Font(
-                "Segoe UI",
-                8.5f
-            ),
-
-            AutoSize = false,
-
-            TextAlign = ContentAlignment.MiddleLeft,
-
-            Location = new Point(10, 4),
-
-            Size = new Size(500, 30)
-        };
-
-        linha.Controls.Add(descricao);
-
-        Button btnRemover = new Button
-        {
-            Text = "Remover",
-
-            Location = new Point(515, 5),
-
-            Size = new Size(80, 28),
-
-            FlatStyle = FlatStyle.Flat,
-
-            BackColor = Color.White,
-
-            ForeColor = Color.DarkRed,
-
-            Cursor = Cursors.Hand,
-
-            Font = new Font(
-                "Segoe UI",
-                8,
-                FontStyle.Bold
-            )
-        };
-
-        btnRemover.FlatAppearance.BorderColor =
-            Color.FromArgb(220, 80, 80);
-
-        btnRemover.FlatAppearance.BorderSize = 1;
-
-        btnRemover.Click += (s, e) =>
-        {
-            modalidades.Remove(modalidade);
-
-            AtualizarListaModalidades();
-        };
-
-        linha.Controls.Add(btnRemover);
-
-        return linha;
-    }
-
-    // ============================
-    // FORMATAR NOME DA MODALIDADE
-    // ============================
-
-    private string FormatarNomeModalidade(
-        Modalidade modalidade)
-    {
-        return modalidade switch
-        {
-            Modalidade.Varejo =>
-                "Varejo",
-
-            Modalidade.Atacado =>
-                "Atacado",
-
-            Modalidade.Pacote =>
-                "Pacote Internacional",
-
-            Modalidade.Lote =>
-                "Lote Nacional",
-
-            _ =>
-                modalidade.ToString()
-        };
-    }
-
-    // ============================
-    // LIMPAR CAMPOS DA MODALIDADE
-    // ============================
-
-    private void LimparCamposModalidade()
-    {
-        cmbModalidade.SelectedIndex = -1;
-
-        nudQuantidadeMinima.Value = 1;
-
-        nudPrecoVenda.Value = 0;
-
-        nudPrecoCusto.Value = 0;
-
-        cmbModalidade.Focus();
-    }
-
-    // ============================
     // IMAGEM DO PRODUTO
     // ============================
 
     private void CriarAreaImagem(Panel card)
     {
-        Label titulo = CriarTituloSecao(
-            "Imagem do produto",
-            25,
-            25
-        );
-
-        card.Controls.Add(titulo);
-
-        Label descricao = new Label
+        card.Controls.Add(CriarTituloSecao("Imagem do produto", 22, 22));
+        card.Controls.Add(new Label
         {
-            Text =
-                "Adicione uma imagem para facilitar\n" +
-                "a identificação do produto.",
-
-            ForeColor = corTextoSecundario,
-
-            Font = new Font(
-                "Segoe UI",
-                9
-            ),
-
-            AutoSize = true,
-
-            Location = new Point(
-                25,
-                60
-            )
-        };
-
-        card.Controls.Add(descricao);
-
+            Text = "Adicione uma imagem para facilitar a identificação do produto.",
+            ForeColor = corTextoSecundario, Font = new Font("Segoe UI", 9),
+            Location = new Point(22, 58), Size = new Size(246, 43)
+        });
         picProduto = new PictureBox
         {
-            Location = new Point(25, 110),
-
-            Size = new Size(250, 150),
-
-            BackColor = Color.FromArgb(
-                245,
-                247,
-                251
-            ),
-
-            BorderStyle =
-                BorderStyle.FixedSingle,
-
-            SizeMode =
-                PictureBoxSizeMode.Zoom
+            Location = new Point(22, 110), Size = new Size(246, 168),
+            BackColor = Color.FromArgb(248, 250, 255),
+            BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom,
+            Cursor = Cursors.Hand
         };
-
+        picProduto.Click += SelecionarImagem;
         card.Controls.Add(picProduto);
-
-        Label textoImagem = new Label
+        lblTextoImagem = new Label
         {
-            Text = "Nenhuma imagem selecionada",
-
-            ForeColor = corTextoSecundario,
-
-            AutoSize = false,
-
-            TextAlign =
-                ContentAlignment.MiddleCenter,
-
-            Size = new Size(
-                250,
-                25
-            ),
-
-            Location = new Point(
-                0,
-                62
-            ),
-
-            BackColor =
-                Color.Transparent
+            Text = "Clique para adicionar uma imagem\nPNG, JPG ou JPEG (máx. 5 MB)",
+            ForeColor = corTextoSecundario, Font = new Font("Segoe UI", 9),
+            TextAlign = ContentAlignment.MiddleCenter, Size = new Size(226, 60),
+            Location = new Point(5, 54), BackColor = Color.Transparent,
+            Cursor = Cursors.Hand
         };
-
-        picProduto.Controls.Add(textoImagem);
-
-        btnSelecionarImagem = new Button
-        {
-            Text = "Selecionar imagem",
-
-            Location = new Point(
-                25,
-                280
-            ),
-
-            Size = new Size(
-                250,
-                42
-            ),
-
-            BackColor = Color.White,
-
-            ForeColor = corPrimaria,
-
-            FlatStyle =
-                FlatStyle.Flat,
-
-            Cursor =
-                Cursors.Hand,
-
-            Font = new Font(
-                "Segoe UI",
-                9,
-                FontStyle.Bold
-            )
-        };
-
-        btnSelecionarImagem.FlatAppearance.BorderColor =
-            corPrimaria;
-
+        lblTextoImagem.Click += SelecionarImagem;
+        picProduto.Controls.Add(lblTextoImagem);
+        btnSelecionarImagem = CriarBotaoAcao("Selecionar imagem", false);
+        btnSelecionarImagem.Location = new Point(22, 291);
+        btnSelecionarImagem.Size = new Size(246, 39);
         btnSelecionarImagem.Click += SelecionarImagem;
-
         card.Controls.Add(btnSelecionarImagem);
+    }
 
-        ArredondarControle(
-            btnSelecionarImagem,
-            6
-        );
+    private void CriarPreVisualizacao(Panel card)
+    {
+        card.Controls.Add(CriarTituloSecao("Pré-visualização", 22, 22));
+        Panel fundo = new Panel
+        {
+            Location = new Point(22, 63), Size = new Size(246, 355),
+            BackColor = Color.FromArgb(249, 250, 254)
+        };
+        card.Controls.Add(fundo);
+        picPreview = new PictureBox
+        {
+            Location = new Point(43, 15), Size = new Size(160, 175),
+            SizeMode = PictureBoxSizeMode.Zoom
+        };
+        fundo.Controls.Add(picPreview);
+        lblPreviewNome = new Label
+        {
+            Location = new Point(10, 200), Size = new Size(226, 30),
+            TextAlign = ContentAlignment.MiddleCenter,
+            ForeColor = corTexto, Font = new Font("Segoe UI", 12, FontStyle.Bold)
+        };
+        fundo.Controls.Add(lblPreviewNome);
+        lblPreviewDetalhes = new Label
+        {
+            Location = new Point(10, 234), Size = new Size(226, 25),
+            TextAlign = ContentAlignment.MiddleCenter, ForeColor = corTextoSecundario,
+            Font = new Font("Segoe UI", 9)
+        };
+        fundo.Controls.Add(lblPreviewDetalhes);
+        lblPreviewPreco = new Label
+        {
+            Location = new Point(10, 268), Size = new Size(226, 45),
+            TextAlign = ContentAlignment.MiddleCenter,
+            ForeColor = corPrimaria, Font = new Font("Segoe UI", 19, FontStyle.Bold)
+        };
+        fundo.Controls.Add(lblPreviewPreco);
+        lblPreviewModalidade = new Label
+        {
+            Location = new Point(10, 320), Size = new Size(226, 24),
+            TextAlign = ContentAlignment.MiddleCenter, ForeColor = corTextoSecundario,
+            Font = new Font("Segoe UI", 9)
+        };
+        fundo.Controls.Add(lblPreviewModalidade);
+    }
+
+    private void AtualizarPreVisualizacao()
+    {
+        if (lblPreviewNome == null || lblPreviewNome.IsDisposed) return;
+        lblPreviewNome.Text = string.IsNullOrWhiteSpace(txtNome.Text)
+            ? "Nome do produto" : txtNome.Text.Trim();
+        string categoria = cmbCategoria.SelectedItem?.ToString() ?? "Categoria";
+        string marca = string.IsNullOrWhiteSpace(txtMarca.Text) ? "Marca" : txtMarca.Text.Trim();
+        lblPreviewDetalhes.Text = $"{categoria}  •  {marca}";
+        decimal preco = nudPrecoVenda.Value;
+        lblPreviewPreco.Text = preco > 0 ? $"R$ {preco:N2}" : "R$ 0,00";
+        lblPreviewModalidade.Text = cmbModalidade.SelectedItem?.ToString() ?? "Modalidade de venda";
+        picPreview.Image = picProduto.Image;
     }
 
     // ============================
     // SELECIONAR IMAGEM
     // ============================
 
-    private void SelecionarImagem(
-        object? sender,
-        EventArgs e)
+    private void SelecionarImagem(object? sender, EventArgs e)
     {
-        using OpenFileDialog dialog =
-            new OpenFileDialog();
-
-        dialog.Title =
-            "Selecionar imagem do produto";
-
-        dialog.Filter =
-            "Imagens|*.jpg;*.jpeg;*.png;*.bmp";
-
-        if (dialog.ShowDialog() ==
-            DialogResult.OK)
+        using OpenFileDialog dialog = new OpenFileDialog
         {
+            Title = "Selecionar imagem do produto",
+            Filter = "Imagens|*.jpg;*.jpeg;*.png;*.bmp"
+        };
+        if (dialog.ShowDialog() != DialogResult.OK) return;
+        try
+        {
+            var arquivo = new System.IO.FileInfo(dialog.FileName);
+            if (arquivo.Length > 5 * 1024 * 1024)
+            {
+                MessageBox.Show("Escolha uma imagem de até 5 MB.", "Imagem muito grande",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            using Image original = Image.FromFile(dialog.FileName);
+            Image nova = new Bitmap(original);
+            Image? antiga = picProduto.Image;
+            picPreview.Image = null;
+            picProduto.Image = nova;
+            antiga?.Dispose();
             caminhoImagem = dialog.FileName;
-
-            try
-            {
-                using Image imagemOriginal =
-                    Image.FromFile(caminhoImagem);
-
-                picProduto.Image =
-                    new Bitmap(imagemOriginal);
-            }
-            catch
-            {
-                MessageBox.Show(
-                    "Não foi possível carregar a imagem.",
-                    "Erro",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
-                );
-
-                caminhoImagem = null;
-            }
+            lblTextoImagem.Visible = false;
+            AtualizarPreVisualizacao();
+        }
+        catch (Exception)
+        {
+            MessageBox.Show("Não foi possível carregar a imagem.", "Erro",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
@@ -1069,16 +652,18 @@ public partial class CadastroProdutoForm : Form
             return;
         }
 
-        if (modalidades.Count == 0)
+        if (cmbModalidade.SelectedIndex == -1)
         {
-            MessageBox.Show(
-                "Adicione pelo menos uma modalidade de venda.",
-                "Modalidade obrigatória",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Warning
-            );
-
+            MessageBox.Show("Selecione uma modalidade de venda.", "Campo obrigatório",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
             cmbModalidade.Focus();
+            return;
+        }
+        if (nudPrecoVenda.Value <= 0)
+        {
+            MessageBox.Show("O preço de venda deve ser maior que zero.", "Valor inválido",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            nudPrecoVenda.Focus();
             return;
         }
 
@@ -1120,10 +705,16 @@ public partial class CadastroProdutoForm : Form
             Imagem =
                 caminhoImagem,
 
-            Modalidades =
-                new List<ProdutoModalidade>(
-                    modalidades
-                )
+            Modalidades = new List<ProdutoModalidade>
+            {
+                new ProdutoModalidade
+                {
+                    Modalidade = ObterModalidadeSelecionada(),
+                    QuantidadeMinimaVenda = (int)nudQuantidadeMinima.Value,
+                    PrecoVenda = nudPrecoVenda.Value,
+                    PrecoCusto = nudPrecoCusto.Value > 0 ? nudPrecoCusto.Value : null
+                }
+            }
         };
 
         // ============================
@@ -1178,17 +769,16 @@ public partial class CadastroProdutoForm : Form
         nudPrecoVenda.Value = 0;
         nudPrecoCusto.Value = 0;
 
-        modalidades.Clear();
-
-        AtualizarListaModalidades();
-
         caminhoImagem = null;
 
         if (picProduto.Image != null)
         {
+            picPreview.Image = null;
             picProduto.Image.Dispose();
             picProduto.Image = null;
         }
+        lblTextoImagem.Visible = true;
+        AtualizarPreVisualizacao();
 
         txtNome.Focus();
     }
@@ -1410,82 +1000,29 @@ public partial class CadastroProdutoForm : Form
     // TEXTBOX NORMAL
     // ============================
 
-    private TextBox CriarTextBox(
-        Control pai,
-        int x,
-        int y,
-        int largura)
+    private TextBox CriarTextBox(Control pai, int x, int y, int largura)
     {
-        Panel borda = new Panel
+        Panel contorno = new Panel
         {
-            Location =
-                new Point(x, y),
-
-            Size =
-                new Size(
-                    largura,
-                    29
-                ),
-
-            BackColor =
-                corBorda
+            Location = new Point(x, y), Size = new Size(largura, 38),
+            BackColor = corBorda, Padding = new Padding(1)
         };
-
-        ArredondarControle(
-            borda,
-            6
-        );
-
         TextBox caixa = new TextBox
         {
-            BorderStyle =
-                BorderStyle.None,
-
-            Font =
-                new Font(
-                    "Segoe UI",
-                    9.5f
-                ),
-
-            BackColor =
-                Color.White,
-
-            ForeColor =
-                Color.FromArgb(
-                    25,
-                    35,
-                    55
-                ),
-
-            Width =
-                largura - 4
+            BorderStyle = BorderStyle.None, Font = new Font("Segoe UI", 10),
+            BackColor = Color.White, ForeColor = corTexto,
+            Location = new Point(8, 9), Width = largura - 16
         };
-
-        caixa.Location =
-            new Point(
-                2,
-                Math.Max(
-                    1,
-                    (borda.Height -
-                     caixa.Height) / 2
-                )
-            );
-
-        borda.Controls.Add(caixa);
-        pai.Controls.Add(borda);
-
-        caixa.Enter += (s, e) =>
+        contorno.BackColor = Color.White;
+        contorno.Paint += (_, e) =>
         {
-            borda.BackColor =
-                corPrimaria;
+            using Pen caneta = new Pen(contorno.ContainsFocus ? corPrimaria : corBorda, 1);
+            e.Graphics.DrawRectangle(caneta, 0, 0, contorno.Width - 1, contorno.Height - 1);
         };
-
-        caixa.Leave += (s, e) =>
-        {
-            borda.BackColor =
-                corBorda;
-        };
-
+        contorno.Controls.Add(caixa);
+        pai.Controls.Add(contorno);
+        caixa.Enter += (_, _) => contorno.Invalidate();
+        caixa.Leave += (_, _) => contorno.Invalidate();
         return caixa;
     }
 
@@ -1493,87 +1030,30 @@ public partial class CadastroProdutoForm : Form
     // TEXTBOX MULTILINE
     // ============================
 
-    private TextBox CriarTextBoxMultiline(
-        Control pai,
-        int x,
-        int y,
-        int largura,
-        int altura)
+    private TextBox CriarTextBoxMultiline(Control pai, int x, int y, int largura, int altura)
     {
-        Panel borda = new Panel
+        Panel contorno = new Panel
         {
-            Location =
-                new Point(x, y),
-
-            Size =
-                new Size(
-                    largura,
-                    altura
-                ),
-
-            BackColor =
-                corBorda
+            Location = new Point(x, y), Size = new Size(largura, altura),
+            BackColor = corBorda
         };
-
-        ArredondarControle(
-            borda,
-            6
-        );
-
         TextBox caixa = new TextBox
         {
-            BorderStyle =
-                BorderStyle.None,
-
-            Multiline = true,
-
-            Font =
-                new Font(
-                    "Segoe UI",
-                    9.5f
-                ),
-
-            BackColor =
-                Color.White,
-
-            ForeColor =
-                Color.FromArgb(
-                    25,
-                    35,
-                    55
-                ),
-
-            Location =
-                new Point(
-                    2,
-                    2
-                ),
-
-            Size =
-                new Size(
-                    largura - 4,
-                    altura - 4
-                ),
-
-            ScrollBars =
-                ScrollBars.Vertical
+            BorderStyle = BorderStyle.None, Multiline = true,
+            Font = new Font("Segoe UI", 10), BackColor = Color.White,
+            ForeColor = corTexto, Location = new Point(8, 7),
+            Size = new Size(largura - 16, altura - 14), ScrollBars = ScrollBars.Vertical
         };
-
-        borda.Controls.Add(caixa);
-        pai.Controls.Add(borda);
-
-        caixa.Enter += (s, e) =>
+        contorno.BackColor = Color.White;
+        contorno.Paint += (_, e) =>
         {
-            borda.BackColor =
-                corPrimaria;
+            using Pen caneta = new Pen(contorno.ContainsFocus ? corPrimaria : corBorda, 1);
+            e.Graphics.DrawRectangle(caneta, 0, 0, contorno.Width - 1, contorno.Height - 1);
         };
-
-        caixa.Leave += (s, e) =>
-        {
-            borda.BackColor =
-                corBorda;
-        };
-
+        contorno.Controls.Add(caixa);
+        pai.Controls.Add(contorno);
+        caixa.Enter += (_, _) => contorno.Invalidate();
+        caixa.Leave += (_, _) => contorno.Invalidate();
         return caixa;
     }
 
@@ -1581,45 +1061,36 @@ public partial class CadastroProdutoForm : Form
     // COMBOBOX
     // ============================
 
-    private ComboBox CriarComboBox(
-        Control pai,
-        int x,
-        int y,
-        int largura)
+    private ComboBox CriarComboBox(Control pai, int x, int y, int largura)
     {
-        ComboBox combo =
-            new ComboBox
-            {
-                Location =
-                    new Point(x, y),
-
-                Size =
-                    new Size(
-                        largura,
-                        35
-                    ),
-
-                Font =
-                    new Font(
-                        "Segoe UI",
-                        10
-                    ),
-
-                DropDownStyle =
-                    ComboBoxStyle.DropDownList,
-
-                FlatStyle =
-                    FlatStyle.Flat,
-
-                BackColor =
-                    Color.White,
-
-                ForeColor =
-                    corTexto
-            };
-
-        pai.Controls.Add(combo);
-
+        // Painel desenha um contorno fino e visível, inclusive
+        // quando o ComboBox está fechado e sem seleção.
+        Panel contorno = new Panel
+        {
+            Location = new Point(x, y),
+            Size = new Size(largura, 38),
+            BackColor = Color.White
+        };
+        ComboBox combo = new ComboBox
+        {
+            Location = new Point(2, 5),
+            Width = largura - 4,
+            Font = new Font("Segoe UI", 10),
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.White,
+            ForeColor = corTexto
+        };
+        contorno.Paint += (_, e) =>
+        {
+            using Pen caneta = new Pen(combo.Focused ? corPrimaria : corBorda, 1);
+            e.Graphics.DrawRectangle(caneta, 0, 0,
+                contorno.ClientSize.Width - 1, contorno.ClientSize.Height - 1);
+        };
+        combo.Enter += (_, _) => contorno.Invalidate();
+        combo.Leave += (_, _) => contorno.Invalidate();
+        contorno.Controls.Add(combo);
+        pai.Controls.Add(contorno);
         return combo;
     }
 
@@ -1627,42 +1098,15 @@ public partial class CadastroProdutoForm : Form
     // NUMERIC UP DOWN
     // ============================
 
-    private NumericUpDown CriarNumeric(
-        Control pai,
-        int x,
-        int y,
-        int largura)
+    private NumericUpDown CriarNumeric(Control pai, int x, int y, int largura)
     {
-        NumericUpDown numeric =
-            new NumericUpDown
-            {
-                Location =
-                    new Point(x, y),
-
-                Size =
-                    new Size(
-                        largura,
-                        35
-                    ),
-
-                Font =
-                    new Font(
-                        "Segoe UI",
-                        10
-                    ),
-
-                BackColor =
-                    Color.White,
-
-                ForeColor =
-                    corTexto,
-
-                BorderStyle =
-                    BorderStyle.FixedSingle
-            };
-
+        NumericUpDown numeric = new NumericUpDown
+        {
+            Location = new Point(x, y), Size = new Size(largura, 38),
+            Font = new Font("Segoe UI", 10), BackColor = Color.White,
+            ForeColor = corTexto, BorderStyle = BorderStyle.FixedSingle
+        };
         pai.Controls.Add(numeric);
-
         return numeric;
     }
 
