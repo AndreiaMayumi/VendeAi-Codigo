@@ -7,11 +7,14 @@ using System.Windows.Forms;
 using VendeAi.Models;
 using VendeAi.Repositories;
 using VendeAi.Controllers;
+using FontAwesome.Sharp;
+using System.Runtime.InteropServices;
 
 namespace VendeAi;
 
 public partial class CadastroProdutoForm : Form
 {
+
     // ============================
     // CORES DO VENDEAÍ
     // ============================
@@ -83,44 +86,81 @@ public partial class CadastroProdutoForm : Form
         SuspendLayout();
         Text = "Cadastrar Produto - VendeAí";
         BackColor = corFundo;
+        FormBorderStyle = FormBorderStyle.None;
+        MaximizedBounds = Screen.FromControl(this).WorkingArea;
         WindowState = FormWindowState.Maximized;
         MinimumSize = new Size(1050, 700);
         Font = new Font("Segoe UI", 10);
         AutoScroll = false;
         Controls.Clear();
 
+        // Barra superior ocupa toda a largura; menu e conteúdo ficam abaixo dela.
+        Panel areaTrabalho = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = corFundo
+        };
+        Controls.Add(areaTrabalho);
+
         Panel menu = new Panel { Dock = DockStyle.Left, Width = 230, BackColor = corMenu };
-        Controls.Add(menu);
-        menu.Controls.Add(new Label
+        areaTrabalho.Controls.Add(menu);
+        PictureBox logo = new PictureBox
         {
-            Text = "🛒  VendeAí", ForeColor = Color.White,
-            Font = new Font("Segoe UI", 20, FontStyle.Bold),
-            Location = new Point(20, 34), Size = new Size(205, 42)
-        });
-        menu.Controls.Add(new Label
-        {
-            Text = "Gestão de vendas", ForeColor = Color.FromArgb(160, 175, 200),
-            Font = new Font("Segoe UI", 9), Location = new Point(34, 78), AutoSize = true
-        });
+            Image = Image.FromFile(
+                System.IO.Path.Combine(
+                    AppContext.BaseDirectory,
+                    "Assets",
+                    "logo-vendeai.png"
+                )
+            ),
+
+            SizeMode = PictureBoxSizeMode.Zoom,
+            Location = new Point(20, 25),
+            Size = new Size(190, 65),
+            BackColor = corMenu
+        };
+
+        menu.Controls.Add(logo);
+                menu.Controls.Add(new Label
+                {
+                    Text = "Gestão de vendas", ForeColor = Color.FromArgb(160, 175, 200),
+                    Font = new Font("Segoe UI", 9), Location = new Point(34, 78), AutoSize = true
+                });
 
         int menuY = 135;
-        foreach (var item in new (string Icone, string Texto)[]
+        foreach (var item in new (IconChar Icone, string Texto)[]
         {
-            ("⌂", "Painel"), ("▣", "Produtos"), ("♙", "Clientes"),
-            ("▤", "Pedidos"), ("▥", "Compras"), ("▥", "Separação"),
-            ("⚿", "Permissões")
+            (IconChar.House, "Painel"),
+            (IconChar.Box, "Produtos"),
+            (IconChar.Users, "Clientes"),
+            (IconChar.ClipboardList, "Pedidos"),
+            (IconChar.CartShopping, "Compras"),
+            (IconChar.BoxesStacked, "Separação"),
+            (IconChar.ShieldHalved, "Permissões")
         })
         {
-            CriarBotaoMenu(menu, item.Icone, item.Texto, menuY, item.Texto == "Produtos");
+            CriarBotaoMenu(menu, item.Icone, item.Texto, menuY,
+                item.Texto == "Produtos");
+
             menuY += 55;
         }
-        Button configuracoes = CriarBotaoMenu(menu, "⚙", "Configurações", 0, false);
+
+        IconButton configuracoes = CriarBotaoMenu(
+            menu, IconChar.Gear, "Configurações", 0, false);
+
         configuracoes.Dock = DockStyle.Bottom;
         configuracoes.Height = 60;
 
         Panel principal = new Panel { Dock = DockStyle.Fill, BackColor = corFundo, AutoScroll = true };
-        Controls.Add(principal);
+        areaTrabalho.Controls.Add(principal);
+        // A área principal preenche o espaço restante, sem cobrir o menu.
         principal.BringToFront();
+
+        // A barra é irmã da área de trabalho, não filha do painel principal.
+        // Assim, ela começa na borda esquerda e atravessa toda a janela.
+        Panel barraTitulo = CriarBarraTitulo();
+        Controls.Add(barraTitulo);
+        barraTitulo.BringToFront();
 
         Panel topo = new Panel { Dock = DockStyle.Top, Height = 50, BackColor = Color.White };
         principal.Controls.Add(topo);
@@ -132,7 +172,7 @@ public partial class CadastroProdutoForm : Form
         };
         topo.Controls.Add(usuario);
         topo.Resize += (_, _) => usuario.Location =
-            new Point(Math.Max(20, topo.ClientSize.Width - usuario.Width - 35), 26);
+            new Point(Math.Max(20, topo.ClientSize.Width - usuario.Width - 35), 30);
 
         // O formulário e os cards laterais ficam na mesma linha.
         // A largura fixa corresponde ao desenho dos campos internos.
@@ -141,7 +181,16 @@ public partial class CadastroProdutoForm : Form
             Location = new Point(20, 90),
             Width = 1040,
             Height = 1020,
-            BackColor = corFundo
+            BackColor = corFundo,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        };
+
+        principal.Controls.Add(conteudo);
+
+        principal.Resize += (_, _) =>
+        {
+            conteudo.Width = Math.Max(0, principal.ClientSize.Width - 40);
+            AjustarLayoutConteudo(conteudo);
         };
         principal.Controls.Add(conteudo);
 
@@ -150,11 +199,25 @@ public partial class CadastroProdutoForm : Form
             Text = "Produtos   ›   Cadastrar produto", ForeColor = corTextoSecundario,
             Font = new Font("Segoe UI", 9), Location = new Point(0, 0), AutoSize = true
         });
+        IconPictureBox iconeTitulo = new IconPictureBox
+        {
+            IconChar = IconChar.Box,
+            IconColor = corPrimaria,
+            IconSize = 32,
+            Size = new Size(38, 38),
+            Location = new Point(0, 53),
+            BackColor = corFundo
+        };
+
+        conteudo.Controls.Add(iconeTitulo);
+
         conteudo.Controls.Add(new Label
         {
-            Text = "Cadastrar Produto", ForeColor = corTexto,
+            Text = "Cadastrar Produto",
+            ForeColor = corTexto,
             Font = new Font("Segoe UI", 24, FontStyle.Bold),
-            Location = new Point(0, 45), AutoSize = true
+            Location = new Point(48, 45),
+            AutoSize = true
         });
         conteudo.Controls.Add(new Label
         {
@@ -784,78 +847,211 @@ public partial class CadastroProdutoForm : Form
     }
 
     // ============================
+    // BARRA DE TÍTULO PERSONALIZADA
+    // ============================
+
+    private Panel CriarBarraTitulo()
+    {
+        Panel barra = new Panel
+        {
+            Dock = DockStyle.Top,
+            Height = 25,
+            BackColor = Color.FromArgb(34, 59, 96)
+        };
+
+        IconPictureBox icone = new IconPictureBox
+        {
+            IconChar = IconChar.CartShopping,
+            IconColor = Color.White,
+            IconSize = 17,
+            Size = new Size(20, 20),
+            Location = new Point(15, 5),
+            BackColor = Color.FromArgb(34, 59, 96)
+        };
+        barra.Controls.Add(icone);
+
+        Label titulo = new Label
+        {
+            Text = "VendeAí | Cadastrar Produto",
+            ForeColor = Color.White,
+            Font = new Font("Segoe UI", 9, FontStyle.Bold),
+            AutoSize = true,
+            Location = new Point(43, 6),
+            BackColor = Color.FromArgb(34, 59, 96)
+        };
+        barra.Controls.Add(titulo);
+
+        Button CriarBotaoJanela(string simbolo, string nome)
+        {
+            Button botao = new Button
+            {
+                Name = nome,
+                Text = simbolo,
+                Dock = DockStyle.Right,
+                Width = 46,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(34, 59, 96),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 9),
+                Cursor = Cursors.Hand,
+                TabStop = false
+            };
+            botao.FlatAppearance.BorderSize = 0;
+            botao.FlatAppearance.MouseOverBackColor = nome == "Fechar"
+                ? Color.FromArgb(190, 40, 55) : corMenuHover;
+            botao.FlatAppearance.MouseDownBackColor = corPrimariaHover;
+            return botao;
+        }
+
+        Button fechar = CriarBotaoJanela("✕", "Fechar");
+        Button maximizar = CriarBotaoJanela("□", "Maximizar");
+        Button minimizar = CriarBotaoJanela("─", "Minimizar");
+
+        fechar.Click += (_, _) => Close();
+        minimizar.Click += (_, _) => WindowState = FormWindowState.Minimized;
+        maximizar.Click += (_, _) => AlternarMaximizacao();
+        SizeChanged += (_, _) => maximizar.Text =
+            WindowState == FormWindowState.Maximized ? "❐" : "□";
+        maximizar.Text = WindowState == FormWindowState.Maximized ? "❐" : "□";
+
+        // No WinForms, controles com Dock.Right são organizados pela ordem Z.
+        // Esta ordem resulta em: minimizar | maximizar | fechar.
+        barra.Controls.Add(minimizar);
+        barra.Controls.Add(maximizar);
+        barra.Controls.Add(fechar);
+
+        barra.MouseDown += IniciarArrasteJanela;
+        titulo.MouseDown += IniciarArrasteJanela;
+        icone.MouseDown += IniciarArrasteJanela;
+        barra.DoubleClick += (_, _) => AlternarMaximizacao();
+        titulo.DoubleClick += (_, _) => AlternarMaximizacao();
+
+        return barra;
+    }
+
+    private void AlternarMaximizacao()
+    {
+        if (WindowState == FormWindowState.Maximized)
+        {
+            WindowState = FormWindowState.Normal;
+        }
+        else
+        {
+            MaximizedBounds = Screen.FromControl(this).WorkingArea;
+            WindowState = FormWindowState.Maximized;
+        }
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool ReleaseCapture();
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(
+        IntPtr hWnd, int msg, int wParam, int lParam);
+
+    private void IniciarArrasteJanela(object? sender, MouseEventArgs e)
+    {
+        if (e.Button != MouseButtons.Left || e.Clicks > 1) return;
+        ReleaseCapture();
+        SendMessage(Handle, 0xA1, 0x2, 0);
+    }
+
+    // ============================
     // CRIAR BOTÃO DO MENU
     // ============================
 
-    private Button CriarBotaoMenu(
+    private IconButton CriarBotaoMenu(
         Panel menu,
-        string icone,
+        IconChar icone,
         string texto,
         int y,
         bool selecionado)
     {
-        Button botao = new Button
+        // O IconButton continua sendo a superfície clicável.
+        // Ícone e texto são posicionados em colunas fixas.
+        IconButton botao = new IconButton
         {
-            Text =
-                $"   {icone}     {texto}",
+            Text = string.Empty,
+            IconChar = IconChar.None,
+            Location = new Point(15, y),
+            Size = new Size(200, 45),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = selecionado ? corPrimaria : corMenu,
+            ForeColor = Color.White,
+            Cursor = Cursors.Hand,
+            TabStop = true
+        };
+        botao.FlatAppearance.BorderSize = 0;
+        botao.FlatAppearance.MouseOverBackColor = selecionado ? corPrimaria : corMenuHover;
+        botao.FlatAppearance.MouseDownBackColor = selecionado ? corPrimariaHover : corMenuHover;
 
-            TextAlign =
-                ContentAlignment.MiddleLeft,
-
-            Location =
-                new Point(15, y),
-
-            Size =
-                new Size(200, 45),
-
-            FlatStyle =
-                FlatStyle.Flat,
-
-            BackColor =
-                selecionado
-                    ? corPrimaria
-                    : corMenu,
-
-            ForeColor =
-                Color.White,
-
-            Font =
-                new Font(
-                    "Segoe UI",
-                    10,
-                    selecionado
-                        ? FontStyle.Bold
-                        : FontStyle.Regular
-                ),
-
-            Cursor =
-                Cursors.Hand
+        IconPictureBox imagemIcone = new IconPictureBox
+        {
+            IconChar = icone,
+            IconColor = Color.White,
+            IconSize = 21,
+            Location = new Point(17, 11),
+            Size = new Size(24, 24),
+            SizeMode = PictureBoxSizeMode.CenterImage,
+            BackColor = Color.Transparent,
+            TabStop = false,
+            Cursor = Cursors.Hand
         };
 
-        botao.FlatAppearance.BorderSize = 0;
+        Label textoMenu = new Label
+        {
+            Text = texto,
+            ForeColor = Color.White,
+            BackColor = Color.Transparent,
+            Font = new Font("Segoe UI", 10,
+                selecionado ? FontStyle.Bold : FontStyle.Regular),
+            Location = new Point(48, 0),
+            Size = new Size(145, 45),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Cursor = Cursors.Hand
+        };
+
+        // Os controles internos não impedem o clique no botão.
+        imagemIcone.Click += (_, _) => botao.PerformClick();
+        textoMenu.Click += (_, _) => botao.PerformClick();
+        imagemIcone.MouseEnter += (_, _) =>
+        {
+            if (!selecionado) botao.BackColor = corMenuHover;
+        };
+        textoMenu.MouseEnter += (_, _) =>
+        {
+            if (!selecionado) botao.BackColor = corMenuHover;
+        };
 
         if (!selecionado)
         {
-            botao.MouseEnter += (s, e) =>
+            botao.MouseEnter += (_, _) => botao.BackColor = corMenuHover;
+            botao.MouseLeave += (_, _) =>
             {
-                botao.BackColor =
-                    corMenuHover;
+                // Evita perder o destaque enquanto o cursor está sobre
+                // o ícone ou o texto, que são controles filhos.
+                Point cursor = botao.PointToClient(Cursor.Position);
+                if (!botao.ClientRectangle.Contains(cursor))
+                    botao.BackColor = corMenu;
             };
-
-            botao.MouseLeave += (s, e) =>
+            imagemIcone.MouseLeave += (_, _) =>
             {
-                botao.BackColor =
-                    corMenu;
+                Point cursor = botao.PointToClient(Cursor.Position);
+                if (!botao.ClientRectangle.Contains(cursor))
+                    botao.BackColor = corMenu;
+            };
+            textoMenu.MouseLeave += (_, _) =>
+            {
+                Point cursor = botao.PointToClient(Cursor.Position);
+                if (!botao.ClientRectangle.Contains(cursor))
+                    botao.BackColor = corMenu;
             };
         }
 
+        botao.Controls.Add(imagemIcone);
+        botao.Controls.Add(textoMenu);
         menu.Controls.Add(botao);
-
-        ArredondarControle(
-            botao,
-            6
-        );
-
+        ArredondarControle(botao, 6);
         return botao;
     }
 
