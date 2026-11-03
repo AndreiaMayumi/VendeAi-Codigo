@@ -60,6 +60,9 @@ public partial class CadastroProdutoForm : Form
 
     private string? caminhoImagem;
 
+    // Variações preparadas antes de salvar o produto.
+    private readonly List<ProdutoVariacao> variacoesPendentes = new();
+
     private readonly ProdutoRepository produtoRepository;
     private readonly ProdutoController produtoController;
 
@@ -71,7 +74,7 @@ public partial class CadastroProdutoForm : Form
     {
         InitializeComponent();
 
-        produtoRepository = new ProdutoRepository();
+        produtoRepository = AppContexto.Produtos;
         produtoController = new ProdutoController(produtoRepository);
 
         CriarInterface();
@@ -139,8 +142,30 @@ public partial class CadastroProdutoForm : Form
             (IconChar.ShieldHalved, "Permissões")
         })
         {
-            CriarBotaoMenu(menu, item.Icone, item.Texto, menuY,
+            IconButton botaoMenu = CriarBotaoMenu(
+                menu, item.Icone, item.Texto, menuY,
                 item.Texto == "Produtos");
+
+            botaoMenu.Click += (_, _) =>
+            {
+                switch (item.Texto)
+                {
+                    case "Produtos":
+                        break;
+                    case "Clientes":
+                        AbrirTela(new ManterClientesForm());
+                        break;
+                    case "Pedidos":
+                        AbrirTela(new ManterPedidosForm());
+                        break;
+                    default:
+                        MessageBox.Show(
+                            "Esta funcionalidade ainda não foi implementada.",
+                            "VendeAí", MessageBoxButtons.OK,
+                            MessageBoxIcon.Information);
+                        break;
+                }
+            };
 
             menuY += 55;
         }
@@ -229,10 +254,7 @@ public partial class CadastroProdutoForm : Form
         btnAdicionarVariacao = CriarBotaoAcao("+  Adicionar variação", false);
         btnAdicionarVariacao.Name = "btnAdicionarVariacao";
         btnAdicionarVariacao.Size = new Size(205, 42);
-        btnAdicionarVariacao.Click += (_, _) => MessageBox.Show(
-            "O cadastro de variações (cor e tamanho) ainda será implementado. " +
-            "Por enquanto, selecione a modalidade de venda no formulário e salve o produto.",
-            "Adicionar variação", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        btnAdicionarVariacao.Click += (_, _) => AbrirCadastroVariacao();
         conteudo.Controls.Add(btnAdicionarVariacao);
 
         Button btnVoltar = CriarBotaoAcao("←  Voltar para a lista", false);
@@ -663,6 +685,253 @@ public partial class CadastroProdutoForm : Form
     }
 
     // ============================
+    // ADICIONAR VARIAÇÕES
+    // ============================
+
+    private void AbrirCadastroVariacao()
+    {
+        if (string.IsNullOrWhiteSpace(txtNome.Text) ||
+            string.IsNullOrWhiteSpace(txtSku.Text))
+        {
+            MessageBox.Show("Preencha o nome e o SKU do produto antes de adicionar variações.",
+                "VendeAí", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        if (cmbModalidade.SelectedIndex < 0)
+        {
+            MessageBox.Show("Selecione a modalidade do produto original primeiro.",
+                "VendeAí", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        using Form janela = new Form
+        {
+            Text = "VendeAí | Adicionar variações",
+            StartPosition = FormStartPosition.CenterParent,
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            MaximizeBox = false,
+            MinimizeBox = false,
+            ClientSize = new Size(670, 590),
+            BackColor = corFundo,
+            Font = new Font("Segoe UI", 10)
+        };
+
+        Label titulo = new Label
+        {
+            Text = $"Variações de {txtNome.Text.Trim()}",
+            Location = new Point(24, 18), Size = new Size(620, 32),
+            Font = new Font("Segoe UI", 16, FontStyle.Bold),
+            ForeColor = corTexto
+        };
+        janela.Controls.Add(titulo);
+
+        Label explicacao = new Label
+        {
+            Text = "Os dados de venda são copiados. Altere somente o necessário.",
+            Location = new Point(26, 55), Size = new Size(615, 28),
+            ForeColor = corTextoSecundario
+        };
+        janela.Controls.Add(explicacao);
+
+        void Rotulo(string texto, int x, int y)
+        {
+            janela.Controls.Add(new Label
+            {
+                Text = texto, Location = new Point(x, y),
+                AutoSize = true, Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                ForeColor = corTexto
+            });
+        }
+
+        TextBox CampoTexto(int x, int y, int largura, string valor = "")
+        {
+            TextBox campo = new TextBox
+            {
+                Location = new Point(x, y), Width = largura,
+                Text = valor, Font = new Font("Segoe UI", 10)
+            };
+            janela.Controls.Add(campo);
+            return campo;
+        }
+
+        NumericUpDown CampoNumero(int x, int y, int largura, decimal valor,
+            int casasDecimais = 0)
+        {
+            NumericUpDown campo = new NumericUpDown
+            {
+                Location = new Point(x, y), Width = largura,
+                DecimalPlaces = casasDecimais,
+                Minimum = casasDecimais == 0 ? 1 : 0,
+                Maximum = 1000000,
+                Value = valor,
+                Font = new Font("Segoe UI", 10)
+            };
+            janela.Controls.Add(campo);
+            return campo;
+        }
+
+        Rotulo("SKU da variação (opcional)", 25, 96);
+        TextBox txtSkuVariacao = CampoTexto(25, 119, 295);
+        Rotulo("Cor (opcional)", 345, 96);
+        TextBox txtCor = CampoTexto(345, 119, 295);
+        Rotulo("Tamanho (opcional)", 25, 162);
+        TextBox txtTamanho = CampoTexto(25, 185, 295);
+        Rotulo("Modalidade", 345, 162);
+        ComboBox comboModalidade = new ComboBox
+        {
+            Location = new Point(345, 185), Width = 295,
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Font = new Font("Segoe UI", 10)
+        };
+        comboModalidade.Items.AddRange(new object[]
+        {
+            "Varejo", "Atacado", "Pacote Internacional", "Lote Nacional"
+        });
+        comboModalidade.SelectedIndex = cmbModalidade.SelectedIndex;
+        janela.Controls.Add(comboModalidade);
+
+        Rotulo("Quantidade mínima", 25, 228);
+        NumericUpDown quantidade = CampoNumero(25, 251, 185, nudQuantidadeMinima.Value);
+        Rotulo("Preço de venda (R$)", 235, 228);
+        NumericUpDown precoVenda = CampoNumero(235, 251, 185, nudPrecoVenda.Value, 2);
+        Rotulo("Preço de custo (R$)", 445, 228);
+        NumericUpDown precoCusto = CampoNumero(445, 251, 195, nudPrecoCusto.Value, 2);
+
+        Rotulo("Variações adicionadas", 25, 306);
+        DataGridView tabela = new DataGridView
+        {
+            Location = new Point(25, 333), Size = new Size(615, 165),
+            ReadOnly = true, AllowUserToAddRows = false,
+            AllowUserToDeleteRows = false, MultiSelect = false,
+            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            RowHeadersVisible = false, AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+            BackgroundColor = Color.White
+        };
+        tabela.Columns.Add("Sku", "SKU");
+        tabela.Columns.Add("Cor", "Cor");
+        tabela.Columns.Add("Tamanho", "Tamanho");
+        tabela.Columns.Add("Modalidade", "Modalidade");
+        tabela.Columns.Add("Preco", "Preço");
+        janela.Controls.Add(tabela);
+
+        void AtualizarTabela()
+        {
+            tabela.Rows.Clear();
+            foreach (ProdutoVariacao variacao in variacoesPendentes)
+            {
+                foreach (ProdutoModalidade modalidade in variacao.Modalidades)
+                {
+                    int indice = tabela.Rows.Add(
+                        variacao.CodigoSku ?? "-", variacao.Cor ?? "-",
+                        variacao.Tamanho ?? "-", modalidade.Modalidade.ToString(),
+                        modalidade.PrecoVenda.ToString("C2"));
+                    tabela.Rows[indice].Tag = variacao;
+                }
+            }
+        }
+        AtualizarTabela();
+
+        Button adicionar = CriarBotaoAcao("+ Adicionar", true);
+        adicionar.Location = new Point(25, 520);
+        adicionar.Size = new Size(150, 40);
+        janela.Controls.Add(adicionar);
+
+        Button remover = CriarBotaoAcao("Remover selecionada", false);
+        remover.Location = new Point(185, 520);
+        remover.Size = new Size(180, 40);
+        janela.Controls.Add(remover);
+
+        Button concluir = CriarBotaoAcao("Concluir", false);
+        concluir.Location = new Point(490, 520);
+        concluir.Size = new Size(150, 40);
+        janela.Controls.Add(concluir);
+
+        adicionar.Click += (_, _) =>
+        {
+            if (precoVenda.Value <= 0)
+            {
+                MessageBox.Show("O preço de venda deve ser maior que zero.", "VendeAí",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string? sku = string.IsNullOrWhiteSpace(txtSkuVariacao.Text)
+                ? null : txtSkuVariacao.Text.Trim();
+            string? cor = string.IsNullOrWhiteSpace(txtCor.Text)
+                ? null : txtCor.Text.Trim();
+            string? tamanho = string.IsNullOrWhiteSpace(txtTamanho.Text)
+                ? null : txtTamanho.Text.Trim();
+
+            if (sku != null &&
+                (sku.Equals(txtSku.Text.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                 produtoRepository.ExisteSku(sku) ||
+                 variacoesPendentes.Any(v =>
+                     string.Equals(v.CodigoSku, sku, StringComparison.OrdinalIgnoreCase))))
+            {
+                MessageBox.Show("Este SKU já está em uso. Informe outro SKU.", "VendeAí",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            Modalidade modalidade = comboModalidade.SelectedIndex switch
+            {
+                0 => Modalidade.Varejo,
+                1 => Modalidade.Atacado,
+                2 => Modalidade.Pacote,
+                3 => Modalidade.Lote,
+                _ => Modalidade.Varejo
+            };
+
+            // Uma combinação de cor, tamanho e modalidade identifica a configuração.
+            bool repetida = variacoesPendentes.Any(v =>
+                string.Equals(v.Cor ?? "", cor ?? "", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(v.Tamanho ?? "", tamanho ?? "", StringComparison.OrdinalIgnoreCase) &&
+                v.Modalidades.Any(m => m.Modalidade == modalidade));
+            if (repetida)
+            {
+                MessageBox.Show("Já existe uma variação com essa cor, tamanho e modalidade.",
+                    "VendeAí", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            ProdutoVariacao nova = new ProdutoVariacao
+            {
+                CodigoSku = sku,
+                Cor = cor,
+                Tamanho = tamanho,
+                Status = StatusProduto.Ativo,
+                Modalidades = new List<ProdutoModalidade>
+                {
+                    new ProdutoModalidade
+                    {
+                        Modalidade = modalidade,
+                        QuantidadeMinimaVenda = (int)quantidade.Value,
+                        PrecoVenda = precoVenda.Value,
+                        PrecoCusto = precoCusto.Value > 0 ? precoCusto.Value : null
+                    }
+                }
+            };
+            variacoesPendentes.Add(nova);
+            AtualizarTabela();
+            txtSkuVariacao.Clear();
+            txtCor.Focus();
+        };
+
+        remover.Click += (_, _) =>
+        {
+            if (tabela.CurrentRow?.Tag is ProdutoVariacao selecionada)
+            {
+                variacoesPendentes.Remove(selecionada);
+                AtualizarTabela();
+            }
+        };
+
+        concluir.Click += (_, _) => janela.Close();
+        janela.ShowDialog(this);
+    }
+
+    // ============================
     // SALVAR PRODUTO
     // ============================
 
@@ -736,6 +1005,8 @@ public partial class CadastroProdutoForm : Form
 
         Produto produto = new Produto
         {
+            Status = StatusProduto.Ativo,
+
             Nome =
                 txtNome.Text.Trim(),
 
@@ -767,6 +1038,8 @@ public partial class CadastroProdutoForm : Form
 
             Imagem =
                 caminhoImagem,
+
+            Variacoes = variacoesPendentes.ToList(),
 
             Modalidades = new List<ProdutoModalidade>
             {
@@ -820,6 +1093,7 @@ public partial class CadastroProdutoForm : Form
 
     private void LimparFormulario()
     {
+        variacoesPendentes.Clear();
         txtNome.Clear();
         txtSku.Clear();
         txtDescricao.Clear();
@@ -1366,5 +1640,14 @@ public partial class CadastroProdutoForm : Form
 
         controle.Region =
             new Region(path);
+    }
+
+    // ============================
+    // NAVEGAÇÃO ENTRE TELAS
+    // ============================
+
+    private void AbrirTela(Form novaTela)
+    {
+        Navegacao.Abrir(novaTela);
     }
 }

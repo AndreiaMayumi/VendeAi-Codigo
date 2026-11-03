@@ -149,73 +149,92 @@ public class PedidoService
     }
 
     // VALIDAÇÕES DOS ITENS
+    
     private void ValidarItem(ItemPedido item)
     {
         if (item == null)
         {
             throw new ArgumentException(
-                "O pedido contém um item inválido."
-            );
+                "O pedido contém um item inválido.");
         }
 
         if (item.Produto == null)
         {
             throw new ArgumentException(
-                "Selecione um produto válido."
-            );
+                "Selecione um produto válido.");
         }
 
         if (item.Produto.Status != StatusProduto.Ativo)
         {
             throw new ArgumentException(
-                $"O produto '{item.Produto.Nome}' está inativo."
-            );
+                $"O produto '{item.Produto.Nome}' está inativo.");
         }
 
         if (item.ProdutoModalidade == null)
         {
             throw new ArgumentException(
-                $"Selecione a modalidade do produto '{item.Produto.Nome}'."
-            );
+                $"Selecione uma modalidade para '{item.Produto.Nome}'.");
         }
 
-        bool modalidadePertenceAoProduto =
-            item.Produto.Modalidades.Any(
-                modalidade =>
-                    modalidade.Id == item.ProdutoModalidade.Id &&
-                    modalidade.Modalidade ==
-                        item.ProdutoModalidade.Modalidade
-            );
+        List<ProdutoModalidade> modalidadesDisponiveis;
 
-        if (!modalidadePertenceAoProduto)
+        if (item.ProdutoVariacao != null)
+        {
+            ProdutoVariacao variacao = item.ProdutoVariacao;
+
+            bool pertenceAoProduto =
+                item.Produto.Variacoes.Any(v =>
+                    ReferenceEquals(v, variacao));
+
+            if (!pertenceAoProduto)
+            {
+                throw new ArgumentException(
+                    "A variação selecionada não pertence ao produto.");
+            }
+
+            if (variacao.Status != StatusProduto.Ativo)
+            {
+                throw new ArgumentException(
+                    "A variação selecionada está inativa.");
+            }
+
+            modalidadesDisponiveis = variacao.Modalidades;
+        }
+        else
+        {
+            modalidadesDisponiveis = item.Produto.Modalidades;
+        }
+
+        bool modalidadeValida = modalidadesDisponiveis.Any(m =>
+            ReferenceEquals(m, item.ProdutoModalidade));
+
+        if (!modalidadeValida)
         {
             throw new ArgumentException(
-                $"A modalidade selecionada não pertence ao produto '{item.Produto.Nome}'."
-            );
+                $"A modalidade selecionada não pertence à configuração escolhida de '{item.Produto.Nome}'.");
         }
 
         if (item.Quantidade <= 0)
         {
             throw new ArgumentException(
-                $"A quantidade do produto '{item.Produto.Nome}' deve ser maior que zero."
-            );
+                "A quantidade deve ser maior que zero.");
         }
 
-        int quantidadeMinima =
-            item.ProdutoModalidade.QuantidadeMinimaVenda;
+        int minimo = item.ProdutoModalidade.QuantidadeMinimaVenda;
 
-        if (item.Quantidade < quantidadeMinima)
+        if (item.Quantidade < minimo)
         {
             throw new ArgumentException(
-                $"O produto '{item.Produto.Nome}' exige quantidade mínima de {quantidadeMinima} unidade(s) na modalidade {item.ProdutoModalidade.Modalidade}."
-            );
+                $"A quantidade mínima para '{item.Produto.Nome}' " +
+                $"na modalidade {item.ProdutoModalidade.Modalidade} " +
+                $"é de {minimo} unidade(s).");
         }
 
         if (item.PrecoUnitario < 0)
         {
             throw new ArgumentException(
-                $"O preço do produto '{item.Produto.Nome}' não pode ser negativo."
-            );
+                "O preço unitário não pode ser negativo.");
         }
     }
+
 }

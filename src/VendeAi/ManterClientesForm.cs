@@ -52,7 +52,7 @@ public class ManterClientesForm : Form
 
     public ManterClientesForm()
     {
-        clienteRepository = new ClienteRepository();
+        clienteRepository = AppContexto.Clientes;
 
         ClienteService service = new ClienteService(clienteRepository);
 
@@ -509,13 +509,39 @@ public class ManterClientesForm : Form
             (IconChar.ShieldHalved, "Permissões")
         })
         {
-            CriarBotaoMenu(
+            IconButton botaoMenu = CriarBotaoMenu(
                 menu,
                 item.Icone,
                 item.Texto,
                 y,
                 item.Texto == "Clientes"
             );
+
+            botaoMenu.Click += (_, _) =>
+            {
+                switch (item.Texto)
+                {
+                    case "Clientes":
+                        break;
+
+                    case "Produtos":
+                        AbrirTela(new CadastroProdutoForm());
+                        break;
+
+                    case "Pedidos":
+                        AbrirTela(new ManterPedidosForm());
+                        break;
+
+                    default:
+                        MessageBox.Show(
+                            "Esta funcionalidade ainda não foi implementada.",
+                            "VendeAí",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Information
+                        );
+                        break;
+                }
+            };
 
             y += 55;
         }
@@ -1162,5 +1188,14 @@ public class ManterClientesForm : Form
                 CarregarClientes();
             }
         }
+    }
+
+        // =====================================
+    // NAVEGAÇÃO ENTRE TELAS
+    // =====================================
+
+    private void AbrirTela(Form novaTela)
+    {
+        Navegacao.Abrir(novaTela);
     }
 }

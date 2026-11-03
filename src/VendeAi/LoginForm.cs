@@ -1019,8 +1019,7 @@ private void ValidarLogin()
         MessageBoxIcon.Information
     );
 
-    // Próxima etapa:
-    // abrir a tela principal após o login.
+    Navegacao.Abrir(new CadastroProdutoForm());
 }
 
 

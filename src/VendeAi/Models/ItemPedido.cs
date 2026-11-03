@@ -1,6 +1,4 @@
 
-using System;
-
 namespace VendeAi.Models;
 
 public class ItemPedido
@@ -8,6 +6,9 @@ public class ItemPedido
     public int Id { get; set; }
 
     public required Produto Produto { get; set; }
+
+    // Variação selecionada, quando existir.
+    public ProdutoVariacao? ProdutoVariacao { get; set; }
 
     public required ProdutoModalidade ProdutoModalidade { get; set; }
 

@@ -988,6 +988,7 @@ public class ManterPedidosForm : Form
     // MENU LATERAL
     // ==========================================
 
+    
     private void CriarMenu(Panel menu)
     {
         string caminhoLogo = Path.Combine(
@@ -1023,8 +1024,7 @@ public class ManterPedidosForm : Form
 
         int y = 125;
 
-        foreach (var item in new
-            (IconChar Icone, string Texto)[]
+        foreach (var item in new (IconChar Icone, string Texto)[]
         {
             (IconChar.House, "Painel"),
             (IconChar.Box, "Produtos"),
@@ -1035,13 +1035,40 @@ public class ManterPedidosForm : Form
             (IconChar.ShieldHalved, "Permissões")
         })
         {
-            CriarBotaoMenu(
+            IconButton botaoMenu = CriarBotaoMenu(
                 menu,
                 item.Icone,
                 item.Texto,
                 y,
                 item.Texto == "Pedidos"
             );
+
+            botaoMenu.Click += (_, _) =>
+            {
+                switch (item.Texto)
+                {
+                    case "Pedidos":
+                        // Já estamos na tela de pedidos.
+                        break;
+
+                    case "Produtos":
+                        AbrirTela(new CadastroProdutoForm());
+                        break;
+
+                    case "Clientes":
+                        AbrirTela(new ManterClientesForm());
+                        break;
+
+                    default:
+                        MessageBox.Show(
+                            "Esta funcionalidade ainda não foi implementada.",
+                            "VendeAí",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Information
+                        );
+                        break;
+                }
+            };
 
             y += 49;
         }
@@ -1056,7 +1083,18 @@ public class ManterPedidosForm : Form
 
         configuracoes.Dock = DockStyle.Bottom;
         configuracoes.Height = 55;
+
+        configuracoes.Click += (_, _) =>
+        {
+            MessageBox.Show(
+                "A tela de configurações ainda não foi implementada.",
+                "VendeAí",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
+        };
     }
+
 
     private IconButton CriarBotaoMenu(
         Panel menu,
@@ -1758,5 +1796,15 @@ public class ManterPedidosForm : Form
                 MessageBoxIcon.Information
             );
         }
+    }
+
+    
+    // ==========================================
+    // NAVEGAÇÃO ENTRE TELAS
+    // ==========================================
+
+    private void AbrirTela(Form novaTela)
+    {
+        Navegacao.Abrir(novaTela);
     }
 }

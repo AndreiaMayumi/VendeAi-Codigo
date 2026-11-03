@@ -30,6 +30,8 @@ public class CadastrarPedidoForm : Form
 
     private Cliente? clienteSelecionado;
     private Produto? produtoSelecionado;
+    private ProdutoVariacao? variacaoSelecionada;
+    private ComboBox cmbVariacao = null!;
 
     private List<Cliente> clientes = new();
     private List<Produto> produtos = new();
@@ -313,25 +315,30 @@ public class CadastrarPedidoForm : Form
 
         campoProduto.Controls.Add(txtProduto);
 
+        card.Controls.Add(CriarLabel("Variação (cor / tamanho)", 18, 86, 9, true));
+        var campoVariacao = CriarCampo(card, 18, 105, 700, 35);
+        cmbVariacao = CriarComboModerno(campoVariacao, 700);
+        cmbVariacao.SelectedIndexChanged += (_, _) => AtualizarVariacao();
+
         card.Controls.Add(
             CriarLabel(
                 "Modalidade",
-                18, 90, 9, true));
+                18, 147, 9, true));
 
         card.Controls.Add(
             CriarLabel(
                 "Quantidade",
-                256, 90, 9, true));
+                256, 147, 9, true));
 
         card.Controls.Add(
             CriarLabel(
                 "Preço unitário",
-                402, 90, 9, true));
+                402, 147, 9, true));
 
         // MODALIDADE COM BORDA MODERNA
 
         var campoModalidade = CriarCampo(
-            card, 18, 111, 220, 36);
+            card, 18, 168, 220, 36);
 
         cmbModalidade = new ComboBox
         {
@@ -356,7 +363,7 @@ public class CadastrarPedidoForm : Form
         // QUANTIDADE PERSONALIZADA
 
         var campoQuantidade = CriarCampo(
-            card, 256, 111, 126, 36);
+            card, 256, 168, 126, 36);
 
         var diminuir = CriarBotaoQuantidade(
             "−", 2, 3);
@@ -403,20 +410,20 @@ public class CadastrarPedidoForm : Form
 
         lblPreco = CriarLabel(
             "R$ 0,00",
-            402, 116, 10, true);
+            402, 173, 10, true);
 
         card.Controls.Add(lblPreco);
 
         lblMinimo = CriarLabel(
             "Quantidade mínima: -",
-            18, 151, 8);
+            18, 207, 8);
 
         lblMinimo.ForeColor = cinza;
         card.Controls.Add(lblMinimo);
 
         var adicionar = CriarBotao(
             "+ Adicionar",
-            574, 107, 144, 36, true);
+            574, 164, 144, 36, true);
 
         adicionar.Click += AdicionarItem;
 
@@ -425,14 +432,14 @@ public class CadastrarPedidoForm : Form
         card.Controls.Add(
             CriarLabel(
                 "Itens do pedido",
-                18, 184, 10, true));
+                18, 237, 10, true));
 
         // TABELA MODERNA
 
         tabela = new DataGridView
         {
-            Location = new Point(18, 213),
-            Size = new Size(700, 129),
+            Location = new Point(18, 263),
+            Size = new Size(700, 79),
 
             BackgroundColor = Color.White,
             BorderStyle = BorderStyle.None,
@@ -504,6 +511,7 @@ public class CadastrarPedidoForm : Form
         tabela.Columns.Add(
             "Produto", "Produto");
 
+        tabela.Columns.Add("Variacao", "Variação");
         tabela.Columns.Add(
             "Modalidade", "Modalidade");
 
@@ -525,7 +533,8 @@ public class CadastrarPedidoForm : Form
 
         tabela.Columns.Add(remover);
 
-        tabela.Columns["Produto"]!.FillWeight = 180;
+        tabela.Columns["Produto"]!.FillWeight = 125;
+        tabela.Columns["Variacao"]!.FillWeight = 120;
         tabela.Columns["Modalidade"]!.FillWeight = 110;
         tabela.Columns["Quantidade"]!.FillWeight = 55;
         tabela.Columns["Subtotal"]!.FillWeight = 105;
@@ -952,9 +961,9 @@ public class CadastrarPedidoForm : Form
             return;
 
         produtoSelecionado = null;
-
+        variacaoSelecionada = null;
+        cmbVariacao.DataSource = null;
         cmbModalidade.DataSource = null;
-
         AtualizarModalidade();
 
         string busca = txtProduto.Text.Trim();
@@ -1005,14 +1014,60 @@ public class CadastrarPedidoForm : Form
 
         listaProdutos.Visible = false;
 
+        cmbVariacao.DataSource = null;
+        var opcoes = new List<OpcaoVariacao>();
+        if (produto.Modalidades.Count > 0)
+            opcoes.Add(new OpcaoVariacao(null, "Produto principal"));
+
+        foreach (var variacao in produto.Variacoes.Where(v =>
+            v.Status == StatusProduto.Ativo && v.Modalidades.Count > 0))
+        {
+            string descricao = string.Join(" / ", new[] { variacao.Cor, variacao.Tamanho }
+                .Where(valor => !string.IsNullOrWhiteSpace(valor)));
+            if (string.IsNullOrWhiteSpace(descricao))
+                descricao = variacao.CodigoSku ?? $"Variação {variacao.Id}";
+            opcoes.Add(new OpcaoVariacao(variacao, descricao));
+        }
+
+        cmbVariacao.DataSource = opcoes;
+        cmbVariacao.DisplayMember = nameof(OpcaoVariacao.Descricao);
+        AtualizarVariacao();
+    }
+
+    private static string DescreverVariacao(ProdutoVariacao? variacao)
+    {
+        if (variacao == null) return "Principal";
+        string descricao = string.Join(" / ",
+            new[] { variacao.Cor, variacao.Tamanho }
+                .Where(v => !string.IsNullOrWhiteSpace(v)));
+        return descricao.Length > 0 ? descricao :
+            variacao.CodigoSku ?? $"Variação {variacao.Id}";
+    }
+
+    private sealed class OpcaoVariacao
+    {
+        public ProdutoVariacao? Variacao { get; }
+        public string Descricao { get; }
+
+        public OpcaoVariacao(ProdutoVariacao? variacao, string descricao)
+        {
+            Variacao = variacao;
+            Descricao = descricao;
+        }
+    }
+
+    private void AtualizarVariacao()
+    {
+        variacaoSelecionada = (cmbVariacao.SelectedItem as OpcaoVariacao)?.Variacao;
+        var modalidades = produtoSelecionado == null
+            ? new List<ProdutoModalidade>()
+            : variacaoSelecionada == null
+                ? produtoSelecionado.Modalidades.ToList()
+                : variacaoSelecionada.Modalidades.ToList();
+
         cmbModalidade.DataSource = null;
-
-        cmbModalidade.DataSource =
-            produto.Modalidades.ToList();
-
-        cmbModalidade.DisplayMember =
-            nameof(ProdutoModalidade.Modalidade);
-
+        cmbModalidade.DisplayMember = nameof(ProdutoModalidade.Modalidade);
+        cmbModalidade.DataSource = modalidades;
         AtualizarModalidade();
     }
 
@@ -1094,7 +1149,8 @@ public class CadastrarPedidoForm : Form
                 i.Produto, produtoSelecionado)
             &&
             ReferenceEquals(
-                i.ProdutoModalidade, modalidade));
+                i.ProdutoModalidade, modalidade)
+            && ReferenceEquals(i.ProdutoVariacao, variacaoSelecionada));
 
         if (existente != null)
         {
@@ -1114,6 +1170,7 @@ public class CadastrarPedidoForm : Form
                 Produto = produtoSelecionado,
 
                 ProdutoModalidade = modalidade,
+                ProdutoVariacao = variacaoSelecionada,
 
                 Quantidade = quantidade,
 
@@ -1146,7 +1203,7 @@ public class CadastrarPedidoForm : Form
         {
             tabela.Rows.Add(
                 item.Produto.Nome,
-
+                DescreverVariacao(item.ProdutoVariacao),
                 item.ProdutoModalidade.Modalidade,
 
                 item.Quantidade,

@@ -1,4 +1,6 @@
 
+using System.Collections.Generic;
+
 namespace VendeAi.Models;
 
 public enum Modalidade
@@ -26,7 +28,6 @@ public class Produto
 {
     public required string Nome { get; set; }
 
-    // Identificador único do produto
     public required string CodigoSku { get; set; }
 
     public string? Descricao { get; set; }
@@ -37,7 +38,12 @@ public class Produto
 
     public string? Imagem { get; set; }
 
-    public StatusProduto Status { get; set; }
+    public StatusProduto Status { get; set; } =
+        StatusProduto.Ativo;
 
+    // Mantido para compatibilidade com o cadastro atual.
     public List<ProdutoModalidade> Modalidades { get; set; } = new();
+
+    // Novas variações vinculadas ao produto principal.
+    public List<ProdutoVariacao> Variacoes { get; set; } = new();
 }
