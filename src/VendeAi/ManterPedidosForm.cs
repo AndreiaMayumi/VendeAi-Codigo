@@ -74,9 +74,10 @@ public class ManterPedidosForm : Form
 
     public ManterPedidosForm()
     {
-        pedidoRepository = new PedidoRepository();
+        pedidoRepository = AppContexto.Pedidos;
 
         PedidoService service = new PedidoService(pedidoRepository);
+
         pedidoController = new PedidoController(service);
 
         CriarInterface();
@@ -1655,12 +1656,12 @@ public class ManterPedidosForm : Form
 
     private void AbrirCadastro()
     {
-        MessageBox.Show(
-            "O formulário de cadastro de pedidos será implementado na próxima etapa.",
-            "VendeAí",
-            MessageBoxButtons.OK,
-            MessageBoxIcon.Information
-        );
+        using var formulario = new CadastrarPedidoForm();
+
+        if (formulario.ShowDialog(this) == DialogResult.OK)
+        {
+            CarregarPedidos();
+        }
     }
 
     // ==========================================
