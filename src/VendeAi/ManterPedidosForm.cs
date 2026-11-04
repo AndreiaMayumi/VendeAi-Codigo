@@ -469,10 +469,21 @@ public class ManterPedidosForm : Form
             new Padding(8, 4, 8, 4);
 
         tabelaPedidos.DefaultCellStyle.SelectionBackColor =
-            Color.FromArgb(241, 245, 255);
+            Color.White;
 
         tabelaPedidos.DefaultCellStyle.SelectionForeColor =
             corTexto;
+
+        tabelaPedidos.ColumnHeadersDefaultCellStyle.SelectionBackColor =
+            tabelaPedidos.ColumnHeadersDefaultCellStyle.BackColor;
+        tabelaPedidos.ColumnHeadersDefaultCellStyle.SelectionForeColor =
+            tabelaPedidos.ColumnHeadersDefaultCellStyle.ForeColor;
+        tabelaPedidos.TabStop = false;
+        tabelaPedidos.SelectionChanged += (_, _) =>
+        {
+            if (tabelaPedidos.IsHandleCreated && !tabelaPedidos.IsDisposed)
+                tabelaPedidos.ClearSelection();
+        };
 
         tabelaPedidos.AlternatingRowsDefaultCellStyle.BackColor =
             Color.FromArgb(252, 253, 255);
@@ -505,7 +516,7 @@ public class ManterPedidosForm : Form
             tabelaPedidos.Columns[nome]!.FillWeight = 40;
         }
 
-        tabelaPedidos.CellContentClick +=
+        tabelaPedidos.CellClick +=
             TabelaPedidos_CellContentClick;
 
         tabelaPedidos.CellFormatting +=
@@ -518,6 +529,7 @@ public class ManterPedidosForm : Form
             TabelaPedidos_CellToolTipTextNeeded;
 
         cardPedidos.Controls.Add(tabelaPedidos, 0, 1);
+        tabelaPedidos.ClearSelection();
 
         ResumeLayout(true);
 
@@ -1519,6 +1531,7 @@ public class ManterPedidosForm : Form
 
         lblTotal.Text =
             $"{resultado.Count} pedido(s) encontrado(s)";
+        tabelaPedidos.ClearSelection();
     }
 
     private static string TextoStatus(
@@ -1784,17 +1797,10 @@ public class ManterPedidosForm : Form
                 return;
             }
 
-            string acao =
-                coluna == "Editar"
-                    ? "edição"
-                    : "visualização";
-
-            MessageBox.Show(
-                $"A tela de {acao} do pedido #{codigo:000000} será implementada na próxima etapa.",
-                "VendeAí",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information
-            );
+            if (coluna == "Visualizar")
+                VisualizarPedido(pedido);
+            else
+                EditarPedido(pedido);
         }
     }
 
@@ -1802,6 +1808,295 @@ public class ManterPedidosForm : Form
     // ==========================================
     // NAVEGAÇÃO ENTRE TELAS
     // ==========================================
+
+    // ==========================================
+    // VISUALIZAR / EDITAR PEDIDO
+    // Mesmo padrão visual do ClienteForm.
+    // ==========================================
+
+    private void VisualizarPedido(Pedido pedido)
+    {
+        AbrirDetalhesPedido(pedido, true);
+    }
+
+    private void EditarPedido(Pedido pedido)
+    {
+        AbrirDetalhesPedido(pedido, false);
+    }
+
+    private void AbrirDetalhesPedido(Pedido pedido, bool somenteLeitura)
+    {
+        Color borda = Color.FromArgb(218, 225, 240);
+        Color fundo = Color.FromArgb(247, 249, 252);
+
+        using Form janela = new Form
+        {
+            Text = somenteLeitura ? "VendeAí | Visualizar pedido" : "VendeAí | Editar pedido",
+            FormBorderStyle = FormBorderStyle.None,
+            StartPosition = FormStartPosition.CenterParent,
+            ClientSize = new Size(900, 690),
+            MinimumSize = new Size(900, 690),
+            MaximumSize = new Size(900, 690),
+            BackColor = Color.White,
+            Font = new Font("Segoe UI", 10),
+            ShowInTaskbar = false
+        };
+
+        janela.Shown += (_, _) => ArredondarControle(janela, 18);
+
+        Panel cabecalho = new Panel { Dock = DockStyle.Top, Height = 88, BackColor = Color.White };
+        janela.Controls.Add(cabecalho);
+
+        cabecalho.Controls.Add(new Label
+        {
+            Text = somenteLeitura ? $"Visualizar pedido #{pedido.Codigo:000000}" : $"Editar pedido #{pedido.Codigo:000000}",
+            Location = new Point(32, 16), AutoSize = true,
+            Font = new Font("Segoe UI", 18, FontStyle.Bold), ForeColor = corTexto
+        });
+        cabecalho.Controls.Add(new Label
+        {
+            Text = somenteLeitura ? "Consulte as informações cadastradas do pedido." : "Atualize o status, o pagamento e as observações do pedido.",
+            Location = new Point(34, 53), AutoSize = true,
+            Font = new Font("Segoe UI", 9), ForeColor = corSecundaria
+        });
+        Button fecharTopo = new Button
+        {
+            Text = "✕", Location = new Point(836, 20), Size = new Size(36, 36),
+            FlatStyle = FlatStyle.Flat, BackColor = Color.White,
+            ForeColor = corSecundaria, Cursor = Cursors.Hand
+        };
+        fecharTopo.FlatAppearance.BorderSize = 0;
+        fecharTopo.FlatAppearance.MouseOverBackColor = Color.FromArgb(220, 53, 69);
+        fecharTopo.MouseEnter += (_, _) =>
+        {
+            fecharTopo.BackColor = Color.FromArgb(220, 53, 69);
+            fecharTopo.ForeColor = Color.White;
+        };
+        fecharTopo.MouseLeave += (_, _) =>
+        {
+            fecharTopo.BackColor = Color.White;
+            fecharTopo.ForeColor = corSecundaria;
+        };
+        fecharTopo.Click += (_, _) => janela.Close();
+        cabecalho.Controls.Add(fecharTopo);
+        cabecalho.Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 1, BackColor = borda });
+
+        Panel rodape = new Panel { Dock = DockStyle.Bottom, Height = 75, BackColor = Color.White };
+        janela.Controls.Add(rodape);
+        rodape.Controls.Add(new Panel { Dock = DockStyle.Top, Height = 1, BackColor = borda });
+
+        Button cancelar = CriarBotao(somenteLeitura ? "Fechar" : "Cancelar", false);
+        cancelar.Location = new Point(32, 16);
+        cancelar.Size = new Size(145, 43);
+        cancelar.Click += (_, _) => janela.Close();
+        rodape.Controls.Add(cancelar);
+
+        Panel conteudo = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, AutoScroll = false };
+        janela.Controls.Add(conteudo);
+        conteudo.BringToFront();
+
+        void Secao(string nome, int y)
+        {
+            conteudo.Controls.Add(new Label
+            {
+                Text = nome, Location = new Point(32, y), AutoSize = true,
+                Font = new Font("Segoe UI", 11, FontStyle.Bold), ForeColor = corTexto
+            });
+        }
+
+        void Rotulo(string nome, int x, int y)
+        {
+            conteudo.Controls.Add(new Label
+            {
+                Text = nome, Location = new Point(x, y), AutoSize = true,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold), ForeColor = corTexto
+            });
+        }
+
+        Panel Caixa(int x, int y, int largura, int altura)
+        {
+            Panel painel = new Panel
+            {
+                Location = new Point(x, y),
+                Size = new Size(largura, altura),
+                BackColor = Color.White
+            };
+            void AtualizarBorda()
+            {
+                if (painel.Width < 3 || painel.Height < 3) return;
+                using GraphicsPath caminho = CriarCaminhoArredondado(
+                    new Rectangle(0, 0, painel.Width - 1, painel.Height - 1), 9);
+                painel.Region?.Dispose();
+                painel.Region = new Region(caminho);
+            }
+            painel.Paint += (_, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using GraphicsPath caminho = CriarCaminhoArredondado(
+                    new Rectangle(1, 1, painel.Width - 3, painel.Height - 3), 8);
+                using Pen caneta = new Pen(Color.FromArgb(210, 220, 237), 1.2f);
+                e.Graphics.DrawPath(caneta, caminho);
+            };
+            painel.Resize += (_, _) => AtualizarBorda();
+            AtualizarBorda();
+            conteudo.Controls.Add(painel);
+            return painel;
+        }
+
+        void CampoTexto(string titulo, string valor, int x, int y, int largura)
+        {
+            Rotulo(titulo, x, y);
+            Panel caixa = Caixa(x, y + 23, largura, 38);
+            Label valorLabel = new Label
+            {
+                Text = valor, Location = new Point(12, 0), Size = new Size(largura - 24, 38),
+                TextAlign = ContentAlignment.MiddleLeft, ForeColor = corTexto,
+                AutoEllipsis = true
+            };
+            caixa.Controls.Add(valorLabel);
+        }
+
+        ComboBox Combo(string titulo, int x, int y, int largura)
+        {
+            Rotulo(titulo, x, y);
+            Panel caixa = Caixa(x, y + 23, largura, 38);
+            ComboBox combo = new ComboBox
+            {
+                Location = new Point(9, 6), Width = largura - 18,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                FlatStyle = FlatStyle.Flat, BackColor = Color.White,
+                ForeColor = corTexto, Enabled = !somenteLeitura
+            };
+            caixa.Controls.Add(combo);
+            return combo;
+        }
+
+        Secao("Informações do pedido", 8);
+        CampoTexto("Cliente", pedido.Cliente.Nome, 32, 39, 405);
+        CampoTexto("Data do pedido", pedido.DataPedido.ToString("dd/MM/yyyy HH:mm"), 455, 39, 413);
+
+        ComboBox status = Combo("Status do pedido", 32, 104, 405);
+        foreach (StatusPedido valor in Enum.GetValues<StatusPedido>())
+            status.Items.Add(valor);
+        status.SelectedItem = pedido.Status;
+
+        ComboBox pagamento = Combo("Forma de pagamento", 455, 104, 413);
+        pagamento.Items.Add("Não informado");
+        foreach (FormaPagamento valor in Enum.GetValues<FormaPagamento>())
+            pagamento.Items.Add(valor);
+        pagamento.SelectedItem = pedido.FormaPagamento.HasValue
+            ? (object)pedido.FormaPagamento.Value : "Não informado";
+
+        Secao("Produtos do pedido", 176);
+        DataGridView itens = new DataGridView
+        {
+            Location = new Point(32, 206), Size = new Size(836, 116),
+            BackgroundColor = Color.White, BorderStyle = BorderStyle.None,
+            AllowUserToAddRows = false, AllowUserToDeleteRows = false,
+            AllowUserToResizeRows = false, ReadOnly = true,
+            RowHeadersVisible = false, MultiSelect = false, TabStop = false,
+            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+            ColumnHeadersHeight = 36, RowTemplate = { Height = 35 },
+            EnableHeadersVisualStyles = false,
+            CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
+            GridColor = Color.FromArgb(240, 242, 247),
+            ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None,
+            ScrollBars = ScrollBars.None
+        };
+        itens.ColumnHeadersDefaultCellStyle.BackColor = fundo;
+        itens.ColumnHeadersDefaultCellStyle.SelectionBackColor = fundo;
+        itens.ColumnHeadersDefaultCellStyle.ForeColor = corTexto;
+        itens.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9, FontStyle.Bold);
+        itens.DefaultCellStyle.BackColor = Color.White;
+        itens.DefaultCellStyle.ForeColor = corTexto;
+        itens.DefaultCellStyle.SelectionBackColor = Color.White;
+        itens.DefaultCellStyle.SelectionForeColor = corTexto;
+        itens.Columns.Add("Produto", "Produto");
+        itens.Columns.Add("Variacao", "Variação");
+        itens.Columns.Add("Modalidade", "Modalidade");
+        itens.Columns.Add("Quantidade", "Qtd.");
+        itens.Columns.Add("Subtotal", "Subtotal");
+        itens.Columns["Produto"]!.FillWeight = 150;
+        itens.Columns["Variacao"]!.FillWeight = 110;
+        itens.Columns["Modalidade"]!.FillWeight = 90;
+        itens.Columns["Quantidade"]!.FillWeight = 55;
+        itens.Columns["Subtotal"]!.FillWeight = 95;
+        foreach (ItemPedido item in pedido.Itens)
+        {
+            string variacao = item.ProdutoVariacao == null ? "Produto principal" :
+                $"{item.ProdutoVariacao.Cor} / {item.ProdutoVariacao.Tamanho}";
+            itens.Rows.Add(item.Produto.Nome, variacao,
+                item.ProdutoModalidade.Modalidade.ToString(), item.Quantidade,
+                item.Subtotal.ToString("C2", culturaBrasil));
+        }
+        itens.SelectionChanged += (_, _) => itens.ClearSelection();
+        conteudo.Controls.Add(itens);
+        itens.ClearSelection();
+
+        CampoTexto("Subtotal", pedido.Subtotal.ToString("C2", culturaBrasil), 32, 334, 265);
+        CampoTexto("Desconto", pedido.Desconto.ToString("C2", culturaBrasil), 318, 334, 265);
+        CampoTexto("Total", pedido.ValorTotal.ToString("C2", culturaBrasil), 604, 334, 264);
+
+        Rotulo("Observações", 32, 406);
+        Panel caixaObs = Caixa(32, 429, 836, 72);
+        TextBox observacoes = new TextBox
+        {
+            Location = new Point(12, 9), Size = new Size(812, 52),
+            BorderStyle = BorderStyle.None, Multiline = true,
+            MaxLength = 500, BackColor = Color.White,
+            ForeColor = corTexto, ReadOnly = somenteLeitura,
+            Text = pedido.Observacoes ?? string.Empty
+        };
+        caixaObs.Controls.Add(observacoes);
+
+        if (!somenteLeitura)
+        {
+            Button salvar = CriarBotao("Salvar alterações", true);
+            salvar.Location = new Point(675, 16);
+            salvar.Size = new Size(195, 43);
+            rodape.Controls.Add(salvar);
+            salvar.Click += (_, _) =>
+            {
+                try
+                {
+                    // Só altera o pedido depois de validar os campos selecionados.
+                    if (status.SelectedItem is not StatusPedido novoStatus)
+                        throw new ArgumentException("Selecione um status válido.");
+                    FormaPagamento? novaForma = pagamento.SelectedItem is FormaPagamento forma
+                        ? forma : null;
+
+                    StatusPedido statusAnterior = pedido.Status;
+                    FormaPagamento? formaAnterior = pedido.FormaPagamento;
+                    string? obsAnterior = pedido.Observacoes;
+                    try
+                    {
+                        pedido.Status = novoStatus;
+                        pedido.FormaPagamento = novaForma;
+                        pedido.Observacoes = observacoes.Text.Trim();
+                        pedidoController.AtualizarPedido(pedido.Codigo, pedido);
+                    }
+                    catch
+                    {
+                        pedido.Status = statusAnterior;
+                        pedido.FormaPagamento = formaAnterior;
+                        pedido.Observacoes = obsAnterior;
+                        throw;
+                    }
+                    janela.DialogResult = DialogResult.OK;
+                    janela.Close();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(janela, ex.Message, "Erro ao atualizar",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            };
+        }
+
+        if (janela.ShowDialog(this) == DialogResult.OK)
+            CarregarPedidos();
+    }
 
     private void AbrirTela(Form novaTela)
     {

@@ -771,8 +771,10 @@ public partial class CadastroProdutoForm : Form
             return campo;
         }
 
-        Rotulo("SKU da variação (opcional)", 25, 96);
+        Rotulo("SKU da variação (gerado automaticamente)", 25, 96);
         TextBox txtSkuVariacao = CampoTexto(25, 119, 295);
+        txtSkuVariacao.ReadOnly = true;
+        txtSkuVariacao.BackColor = Color.FromArgb(245, 247, 251);
         Rotulo("Cor (opcional)", 345, 96);
         TextBox txtCor = CampoTexto(345, 119, 295);
         Rotulo("Tamanho (opcional)", 25, 162);
@@ -790,6 +792,60 @@ public partial class CadastroProdutoForm : Form
         });
         comboModalidade.SelectedIndex = cmbModalidade.SelectedIndex;
         janela.Controls.Add(comboModalidade);
+
+        // O SKU identifica a combinação de cor e tamanho, não a modalidade.
+        // Se a variação já existe, todas as suas modalidades usam o mesmo SKU.
+        string ParteSku(string? valor)
+        {
+            string texto = (valor ?? "").Trim().ToUpperInvariant()
+                .Normalize(System.Text.NormalizationForm.FormD);
+            var letras = texto.Where(c =>
+                System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) !=
+                    System.Globalization.UnicodeCategory.NonSpacingMark)
+                .ToArray();
+            texto = new string(letras).Normalize(System.Text.NormalizationForm.FormC);
+            return new string(texto.Select(c =>
+                char.IsLetterOrDigit(c) ? c : '-').ToArray()).Trim('-');
+        }
+
+        void AtualizarSkuVariacao()
+        {
+            string corAtual = txtCor.Text.Trim();
+            string tamanhoAtual = txtTamanho.Text.Trim();
+            ProdutoVariacao? existente = variacoesPendentes.FirstOrDefault(v =>
+                string.Equals((v.Cor ?? "").Trim(), corAtual, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals((v.Tamanho ?? "").Trim(), tamanhoAtual, StringComparison.OrdinalIgnoreCase));
+
+            if (existente != null)
+            {
+                txtSkuVariacao.Text = existente.CodigoSku ?? "";
+                return;
+            }
+
+            string baseSku = ParteSku(txtSku.Text);
+            string corSku = ParteSku(corAtual);
+            string tamanhoSku = ParteSku(tamanhoAtual);
+            string complemento = string.Join("-", new[] { corSku, tamanhoSku }
+                .Where(x => !string.IsNullOrWhiteSpace(x)));
+            if (string.IsNullOrWhiteSpace(complemento))
+            {
+                txtSkuVariacao.Clear();
+                return;
+            }
+
+            string candidato = $"{baseSku}-{complemento}";
+            string skuFinal = candidato;
+            int numero = 2;
+            while (produtoRepository.ExisteSku(skuFinal) ||
+                variacoesPendentes.Any(v => string.Equals(v.CodigoSku, skuFinal,
+                    StringComparison.OrdinalIgnoreCase)))
+            {
+                skuFinal = $"{candidato}-{numero++}";
+            }
+            txtSkuVariacao.Text = skuFinal;
+        }
+        txtCor.TextChanged += (_, _) => AtualizarSkuVariacao();
+        txtTamanho.TextChanged += (_, _) => AtualizarSkuVariacao();
 
         Rotulo("Quantidade mínima", 25, 228);
         NumericUpDown quantidade = CampoNumero(25, 251, 185, nudQuantidadeMinima.Value);
@@ -826,7 +882,7 @@ public partial class CadastroProdutoForm : Form
                         variacao.CodigoSku ?? "-", variacao.Cor ?? "-",
                         variacao.Tamanho ?? "-", modalidade.Modalidade.ToString(),
                         modalidade.PrecoVenda.ToString("C2"));
-                    tabela.Rows[indice].Tag = variacao;
+                    tabela.Rows[indice].Tag = (variacao, modalidade);
                 }
             }
         }
@@ -856,23 +912,13 @@ public partial class CadastroProdutoForm : Form
                 return;
             }
 
+            AtualizarSkuVariacao();
             string? sku = string.IsNullOrWhiteSpace(txtSkuVariacao.Text)
                 ? null : txtSkuVariacao.Text.Trim();
             string? cor = string.IsNullOrWhiteSpace(txtCor.Text)
                 ? null : txtCor.Text.Trim();
             string? tamanho = string.IsNullOrWhiteSpace(txtTamanho.Text)
                 ? null : txtTamanho.Text.Trim();
-
-            if (sku != null &&
-                (sku.Equals(txtSku.Text.Trim(), StringComparison.OrdinalIgnoreCase) ||
-                 produtoRepository.ExisteSku(sku) ||
-                 variacoesPendentes.Any(v =>
-                     string.Equals(v.CodigoSku, sku, StringComparison.OrdinalIgnoreCase))))
-            {
-                MessageBox.Show("Este SKU já está em uso. Informe outro SKU.", "VendeAí",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
 
             Modalidade modalidade = comboModalidade.SelectedIndex switch
             {
@@ -883,46 +929,62 @@ public partial class CadastroProdutoForm : Form
                 _ => Modalidade.Varejo
             };
 
-            // Uma combinação de cor, tamanho e modalidade identifica a configuração.
-            bool repetida = variacoesPendentes.Any(v =>
-                string.Equals(v.Cor ?? "", cor ?? "", StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(v.Tamanho ?? "", tamanho ?? "", StringComparison.OrdinalIgnoreCase) &&
-                v.Modalidades.Any(m => m.Modalidade == modalidade));
-            if (repetida)
+            // Cor + tamanho identificam a variação. Cada modalidade fica dentro dela.
+            ProdutoVariacao? existente = variacoesPendentes.FirstOrDefault(v =>
+                string.Equals((v.Cor ?? "").Trim(), (cor ?? "").Trim(), StringComparison.OrdinalIgnoreCase) &&
+                string.Equals((v.Tamanho ?? "").Trim(), (tamanho ?? "").Trim(), StringComparison.OrdinalIgnoreCase));
+
+            if (existente != null && existente.Modalidades.Any(m => m.Modalidade == modalidade))
             {
-                MessageBox.Show("Já existe uma variação com essa cor, tamanho e modalidade.",
+                MessageBox.Show("Essa combinação de cor, tamanho e modalidade já está cadastrada.",
                     "VendeAí", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            ProdutoVariacao nova = new ProdutoVariacao
+            if (existente == null && sku == null)
             {
-                CodigoSku = sku,
-                Cor = cor,
-                Tamanho = tamanho,
-                Status = StatusProduto.Ativo,
-                Modalidades = new List<ProdutoModalidade>
-                {
-                    new ProdutoModalidade
-                    {
-                        Modalidade = modalidade,
-                        QuantidadeMinimaVenda = (int)quantidade.Value,
-                        PrecoVenda = precoVenda.Value,
-                        PrecoCusto = precoCusto.Value > 0 ? precoCusto.Value : null
-                    }
-                }
+                MessageBox.Show("Informe pelo menos a cor ou o tamanho para gerar o SKU da variação.",
+                    "VendeAí", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            ProdutoModalidade novaModalidade = new ProdutoModalidade
+            {
+                Modalidade = modalidade,
+                QuantidadeMinimaVenda = (int)quantidade.Value,
+                PrecoVenda = precoVenda.Value,
+                PrecoCusto = precoCusto.Value > 0 ? precoCusto.Value : null
             };
-            variacoesPendentes.Add(nova);
+
+            if (existente != null)
+            {
+                if (string.IsNullOrWhiteSpace(existente.CodigoSku))
+                    existente.CodigoSku = sku;
+                existente.Modalidades.Add(novaModalidade);
+            }
+            else
+            {
+                variacoesPendentes.Add(new ProdutoVariacao
+                {
+                    CodigoSku = sku,
+                    Cor = cor,
+                    Tamanho = tamanho,
+                    Status = StatusProduto.Ativo,
+                    Modalidades = new List<ProdutoModalidade> { novaModalidade }
+                });
+            }
             AtualizarTabela();
-            txtSkuVariacao.Clear();
+            AtualizarSkuVariacao();
             txtCor.Focus();
         };
 
         remover.Click += (_, _) =>
         {
-            if (tabela.CurrentRow?.Tag is ProdutoVariacao selecionada)
+            if (tabela.CurrentRow?.Tag is ValueTuple<ProdutoVariacao, ProdutoModalidade> selecao)
             {
-                variacoesPendentes.Remove(selecionada);
+                selecao.Item1.Modalidades.Remove(selecao.Item2);
+                if (selecao.Item1.Modalidades.Count == 0)
+                    variacoesPendentes.Remove(selecao.Item1);
                 AtualizarTabela();
             }
         };
@@ -1648,6 +1710,21 @@ public partial class CadastroProdutoForm : Form
 
     private void AbrirTela(Form novaTela)
     {
-        Navegacao.Abrir(novaTela);
+        Hide();
+
+        try
+        {
+            using (novaTela)
+            {
+                novaTela.ShowDialog();
+            }
+        }
+        finally
+        {
+            if (!IsDisposed)
+            {
+                Show();
+            }
+        }
     }
 }
