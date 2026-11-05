@@ -74,7 +74,6 @@ public class ManterClientesForm : Form
         Text = "VendeAí | Clientes";
         BackColor = corFundo;
         FormBorderStyle = FormBorderStyle.None;
-        MaximizedBounds = Screen.FromControl(this).WorkingArea;
         WindowState = FormWindowState.Maximized;
         MinimumSize = new Size(1050, 700);
         Font = new Font("Segoe UI", 10);

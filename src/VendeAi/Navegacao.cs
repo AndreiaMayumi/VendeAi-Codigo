@@ -1,4 +1,3 @@
-
 using System;
 using System.Windows.Forms;
 
@@ -38,8 +37,14 @@ public sealed class Navegacao : ApplicationContext
             {
                 novaTela.Bounds = anterior.Bounds;
             }
+            else
+            {
+                novaTela.Bounds = anterior.RestoreBounds;
+            }
 
             novaTela.WindowState = anterior.WindowState;
+
+            anterior.Hide();
         }
 
         telaAtual = novaTela;
@@ -55,9 +60,8 @@ public sealed class Navegacao : ApplicationContext
 
         novaTela.Show();
 
-        if (anterior != null)
+        if (anterior != null && !anterior.IsDisposed)
         {
-            anterior.Hide();
             anterior.Close();
         }
     }

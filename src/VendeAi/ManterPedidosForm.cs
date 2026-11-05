@@ -1844,21 +1844,51 @@ public class ManterPedidosForm : Form
 
         janela.Shown += (_, _) => ArredondarControle(janela, 18);
 
-        Panel cabecalho = new Panel { Dock = DockStyle.Top, Height = 88, BackColor = Color.White };
-        janela.Controls.Add(cabecalho);
+        // Moldura própria, visível mesmo sobre a tela de pedidos.
+        Panel moldura = new Panel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(3),
+            BackColor = Color.White
+        };
+        moldura.Paint += (_, e) =>
+        {
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            using GraphicsPath contorno = CriarCaminhoArredondado(
+                new Rectangle(1, 1, moldura.Width - 3, moldura.Height - 3), 16);
+            using Pen caneta = new Pen(Color.FromArgb(145, 160, 188), 1.7f);
+            e.Graphics.DrawPath(caneta, contorno);
+        };
+        janela.Controls.Add(moldura);
 
-        cabecalho.Controls.Add(new Label
+        Panel cabecalho = new Panel { Dock = DockStyle.Top, Height = 88, BackColor = Color.White };
+        moldura.Controls.Add(cabecalho);
+
+        Label tituloJanela = new Label
         {
             Text = somenteLeitura ? $"Visualizar pedido #{pedido.Codigo:000000}" : $"Editar pedido #{pedido.Codigo:000000}",
             Location = new Point(32, 16), AutoSize = true,
             Font = new Font("Segoe UI", 18, FontStyle.Bold), ForeColor = corTexto
-        });
-        cabecalho.Controls.Add(new Label
+        };
+        cabecalho.Controls.Add(tituloJanela);
+        Label subtituloJanela = new Label
         {
             Text = somenteLeitura ? "Consulte as informações cadastradas do pedido." : "Atualize o status, o pagamento e as observações do pedido.",
             Location = new Point(34, 53), AutoSize = true,
             Font = new Font("Segoe UI", 9), ForeColor = corSecundaria
-        });
+        };
+        cabecalho.Controls.Add(subtituloJanela);
+
+        // Permite mover o diálogo pela faixa superior, inclusive pelos textos.
+        MouseEventHandler arrastarDialogo = (_, e) =>
+        {
+            if (e.Button != MouseButtons.Left) return;
+            ReleaseCapture();
+            SendMessage(janela.Handle, 0xA1, 0x2, 0);
+        };
+        cabecalho.MouseDown += arrastarDialogo;
+        tituloJanela.MouseDown += arrastarDialogo;
+        subtituloJanela.MouseDown += arrastarDialogo;
         Button fecharTopo = new Button
         {
             Text = "✕", Location = new Point(836, 20), Size = new Size(36, 36),
@@ -1882,17 +1912,29 @@ public class ManterPedidosForm : Form
         cabecalho.Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 1, BackColor = borda });
 
         Panel rodape = new Panel { Dock = DockStyle.Bottom, Height = 75, BackColor = Color.White };
-        janela.Controls.Add(rodape);
+        moldura.Controls.Add(rodape);
         rodape.Controls.Add(new Panel { Dock = DockStyle.Top, Height = 1, BackColor = borda });
 
         Button cancelar = CriarBotao(somenteLeitura ? "Fechar" : "Cancelar", false);
         cancelar.Location = new Point(32, 16);
         cancelar.Size = new Size(145, 43);
+        Color vermelhoHover = Color.FromArgb(220, 53, 69);
+        cancelar.FlatAppearance.MouseOverBackColor = vermelhoHover;
+        cancelar.MouseEnter += (_, _) =>
+        {
+            cancelar.BackColor = vermelhoHover;
+            cancelar.ForeColor = Color.White;
+        };
+        cancelar.MouseLeave += (_, _) =>
+        {
+            cancelar.BackColor = Color.White;
+            cancelar.ForeColor = corPrimaria;
+        };
         cancelar.Click += (_, _) => janela.Close();
         rodape.Controls.Add(cancelar);
 
         Panel conteudo = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, AutoScroll = false };
-        janela.Controls.Add(conteudo);
+        moldura.Controls.Add(conteudo);
         conteudo.BringToFront();
 
         void Secao(string nome, int y)
@@ -1921,24 +1963,17 @@ public class ManterPedidosForm : Form
                 Size = new Size(largura, altura),
                 BackColor = Color.White
             };
-            void AtualizarBorda()
-            {
-                if (painel.Width < 3 || painel.Height < 3) return;
-                using GraphicsPath caminho = CriarCaminhoArredondado(
-                    new Rectangle(0, 0, painel.Width - 1, painel.Height - 1), 9);
-                painel.Region?.Dispose();
-                painel.Region = new Region(caminho);
-            }
+            // Não recortamos a Region do campo: isso escondia as bordas
+            // superior e inferior em algumas escalas de DPI do Windows.
             painel.Paint += (_, e) =>
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 using GraphicsPath caminho = CriarCaminhoArredondado(
-                    new Rectangle(1, 1, painel.Width - 3, painel.Height - 3), 8);
-                using Pen caneta = new Pen(Color.FromArgb(210, 220, 237), 1.2f);
+                    new Rectangle(2, 2, painel.ClientSize.Width - 5,
+                        painel.ClientSize.Height - 5), 8);
+                using Pen caneta = new Pen(Color.FromArgb(195, 207, 229), 1.5f);
                 e.Graphics.DrawPath(caneta, caminho);
             };
-            painel.Resize += (_, _) => AtualizarBorda();
-            AtualizarBorda();
             conteudo.Controls.Add(painel);
             return painel;
         }
@@ -2042,6 +2077,7 @@ public class ManterPedidosForm : Form
         Panel caixaObs = Caixa(32, 429, 836, 72);
         TextBox observacoes = new TextBox
         {
+    
             Location = new Point(12, 9), Size = new Size(812, 52),
             BorderStyle = BorderStyle.None, Multiline = true,
             MaxLength = 500, BackColor = Color.White,

@@ -1282,7 +1282,7 @@ public class CadastrarPedidoForm : Form
 
                 Itens = new List<ItemPedido>(itens),
 
-                DataPedido = dtPedido.Value.Date,
+                DataPedido = dtPedido.Value.Date.Add(DateTime.Now.TimeOfDay),
 
                 DataPrevistaEntrega =
                     chkEntrega.Checked
