@@ -1070,6 +1070,9 @@ public class ManterPedidosForm : Form
                     case "Clientes":
                         AbrirTela(new ManterClientesForm());
                         break;
+                    case "Compras":
+                        AbrirTela(new ManterComprasForm());
+                        break;
 
                     default:
                         MessageBox.Show(

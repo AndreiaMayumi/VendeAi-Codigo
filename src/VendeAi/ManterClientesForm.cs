@@ -531,6 +531,10 @@ public class ManterClientesForm : Form
                         AbrirTela(new ManterPedidosForm());
                         break;
 
+                    case "Compras":
+                        AbrirTela(new ManterComprasForm());
+                        break;
+
                     default:
                         MessageBox.Show(
                             "Esta funcionalidade ainda não foi implementada.",
