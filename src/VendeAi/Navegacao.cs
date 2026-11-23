@@ -1,3 +1,4 @@
+
 using System;
 using System.Windows.Forms;
 
@@ -7,6 +8,7 @@ public sealed class Navegacao : ApplicationContext
 {
     private static Navegacao? instancia;
     private Form? telaAtual;
+    private bool navegando;
 
     public Navegacao(Form telaInicial)
     {
@@ -18,6 +20,8 @@ public sealed class Navegacao : ApplicationContext
     {
         if (instancia == null)
         {
+            novaTela.Dispose();
+
             throw new InvalidOperationException(
                 "A navegação ainda não foi inicializada.");
         }
@@ -27,42 +31,73 @@ public sealed class Navegacao : ApplicationContext
 
     private void Exibir(Form novaTela)
     {
-        Form? anterior = telaAtual;
-
-        if (anterior != null)
+        if (navegando)
         {
-            novaTela.StartPosition = FormStartPosition.Manual;
-
-            if (anterior.WindowState == FormWindowState.Normal)
-            {
-                novaTela.Bounds = anterior.Bounds;
-            }
-            else
-            {
-                novaTela.Bounds = anterior.RestoreBounds;
-            }
-
-            novaTela.WindowState = anterior.WindowState;
-
-            anterior.Hide();
+            novaTela.Dispose();
+            return;
         }
 
-        telaAtual = novaTela;
-        MainForm = novaTela;
+        if (novaTela.IsDisposed)
+            return;
 
-        novaTela.FormClosed += (_, _) =>
+        navegando = true;
+
+        try
         {
-            if (ReferenceEquals(telaAtual, novaTela))
+            Form? anterior = telaAtual;
+
+            if (anterior != null && !anterior.IsDisposed)
             {
-                ExitThread();
+                novaTela.StartPosition = FormStartPosition.Manual;
+
+                if (anterior.WindowState == FormWindowState.Maximized)
+                {
+                    novaTela.Bounds = anterior.RestoreBounds;
+                    novaTela.WindowState = FormWindowState.Maximized;
+                }
+                else if (anterior.WindowState == FormWindowState.Minimized)
+                {
+                    novaTela.Bounds = anterior.RestoreBounds;
+                    novaTela.WindowState = FormWindowState.Normal;
+                }
+                else
+                {
+                    novaTela.Bounds = anterior.Bounds;
+                    novaTela.WindowState = FormWindowState.Normal;
+                }
             }
-        };
 
-        novaTela.Show();
+            // Oculta a janela anterior antes da troca.
+            if (anterior != null && !anterior.IsDisposed)
+            {
+                anterior.Hide();
+            }
 
-        if (anterior != null && !anterior.IsDisposed)
+            // Define a nova janela principal.
+            telaAtual = novaTela;
+            MainForm = novaTela;
+
+            novaTela.FormClosed += (_, _) =>
+            {
+                if (ReferenceEquals(telaAtual, novaTela))
+                {
+                    telaAtual = null;
+                    ExitThread();
+                }
+            };
+
+            // Exibe a nova tela.
+            novaTela.Show();
+
+            // Encerra a janela anterior.
+            if (anterior != null && !anterior.IsDisposed)
+            {
+                anterior.Close();
+            }
+        }
+        finally
         {
-            anterior.Close();
+            navegando = false;
         }
     }
 }

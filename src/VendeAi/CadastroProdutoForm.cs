@@ -1709,22 +1709,7 @@ public partial class CadastroProdutoForm : Form
     // ============================
 
     private void AbrirTela(Form novaTela)
-    {
-        Hide();
-
-        try
-        {
-            using (novaTela)
-            {
-                novaTela.ShowDialog();
-            }
-        }
-        finally
-        {
-            if (!IsDisposed)
-            {
-                Show();
-            }
-        }
-    }
+{
+    Navegacao.Abrir(novaTela);
+}
 }
