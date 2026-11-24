@@ -1677,7 +1677,7 @@ public class ManterPedidosForm : Form
         int y = e.CellBounds.Y +
             (e.CellBounds.Height - imagem.Height) / 2;
 
-        e.Graphics.DrawImage(imagem, x, y);
+        e.Graphics?.DrawImage(imagem, x, y);
 
         e.Handled = true;
     }
@@ -2119,7 +2119,7 @@ public class ManterPedidosForm : Form
                     {
                         pedido.Status = statusAnterior;
                         pedido.FormaPagamento = formaAnterior;
-                        pedido.Observacoes = obsAnterior;
+                        pedido.Observacoes = obsAnterior ?? string.Empty;
                         throw;
                     }
                     janela.DialogResult = DialogResult.OK;
