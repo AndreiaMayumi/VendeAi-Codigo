@@ -1438,7 +1438,7 @@ public class CadastrarPedidoForm : Form
             return;
 
         string texto =
-            combo.GetItemText(combo.Items[e.Index]);
+            combo.GetItemText(combo.Items[e.Index]) ?? string.Empty;
 
         using var pincel =
             new SolidBrush(marinho);
