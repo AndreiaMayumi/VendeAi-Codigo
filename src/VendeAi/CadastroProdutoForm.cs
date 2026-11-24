@@ -66,13 +66,34 @@ public partial class CadastroProdutoForm : Form
     private readonly ProdutoRepository produtoRepository;
     private readonly ProdutoController produtoController;
 
+    // Quando "embutido", este formulário vive dentro da tela de Produtos
+    // (sem menu, barra de título e topo próprios).
+    private readonly bool embutido;
+
+    // Disparado quando o usuário quer voltar para a lista de produtos
+    // (botão "Voltar para a lista", "Cancelar" ou após salvar).
+    public event EventHandler? VoltarParaLista;
+
     // ============================
     // CONSTRUTOR
     // ============================
 
-    public CadastroProdutoForm()
+    public CadastroProdutoForm() : this(false)
     {
+    }
+
+    public CadastroProdutoForm(bool embutido)
+    {
+        this.embutido = embutido;
+
         InitializeComponent();
+
+        if (embutido)
+        {
+            TopLevel = false;
+            FormBorderStyle = FormBorderStyle.None;
+            Dock = DockStyle.Fill;
+        }
 
         produtoRepository = AppContexto.Produtos;
         produtoController = new ProdutoController(produtoRepository);
@@ -90,9 +111,12 @@ public partial class CadastroProdutoForm : Form
         Text = "Cadastrar Produto - VendeAí";
         BackColor = corFundo;
         FormBorderStyle = FormBorderStyle.None;
-        MaximizedBounds = Screen.FromControl(this).WorkingArea;
-        WindowState = FormWindowState.Maximized;
-        MinimumSize = new Size(1050, 700);
+        if (!embutido)
+        {
+            MaximizedBounds = Screen.FromControl(this).WorkingArea;
+            WindowState = FormWindowState.Maximized;
+            MinimumSize = new Size(1050, 700);
+        }
         Font = new Font("Segoe UI", 10);
         AutoScroll = false;
         Controls.Clear();
@@ -151,6 +175,7 @@ public partial class CadastroProdutoForm : Form
                 switch (item.Texto)
                 {
                     case "Produtos":
+                        AbrirTela(new ManterProdutosForm());
                         break;
                     case "Clientes":
                         AbrirTela(new ManterClientesForm());
@@ -263,9 +288,7 @@ public partial class CadastroProdutoForm : Form
         Button btnVoltar = CriarBotaoAcao("←  Voltar para a lista", false);
         btnVoltar.Name = "btnVoltar";
         btnVoltar.Size = new Size(195, 42);
-        btnVoltar.Click += (_, _) => MessageBox.Show(
-            "A tela de listagem de produtos ainda não foi criada.",
-            "VendeAí", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        btnVoltar.Click += (_, _) => VoltarOuFechar();
         conteudo.Controls.Add(btnVoltar);
 
         Panel card = CriarCard(new Point(0, 155), new Size(710, 675));
@@ -299,7 +322,7 @@ public partial class CadastroProdutoForm : Form
             btnCancelar.BackColor = Color.White;
             btnCancelar.ForeColor = Color.FromArgb(190, 40, 55);
         };
-        btnCancelar.Click += (_, _) => Close();
+        btnCancelar.Click += (_, _) => VoltarOuFechar();
         card.Controls.Add(btnCancelar);
 
         btnSalvar = CriarBotaoAcao("Salvar", true);
@@ -314,9 +337,31 @@ public partial class CadastroProdutoForm : Form
         cmbCategoria.SelectedIndexChanged += (_, _) => AtualizarPreVisualizacao();
         cmbModalidade.SelectedIndexChanged += (_, _) => AtualizarPreVisualizacao();
         nudPrecoVenda.ValueChanged += (_, _) => AtualizarPreVisualizacao();
+
+        if (embutido)
+        {
+            // Dentro da tela de Produtos o menu, a barra de título e o topo já existem.
+            menu.Visible = false;
+            barraTitulo.Visible = false;
+            topo.Visible = false;
+            conteudo.Top = 10;
+        }
+
         AjustarLayoutConteudo(conteudo);
         AtualizarPreVisualizacao();
         ResumeLayout();
+    }
+
+    // ============================
+    // VOLTAR PARA A LISTA
+    // ============================
+
+    private void VoltarOuFechar()
+    {
+        if (embutido)
+            VoltarParaLista?.Invoke(this, EventArgs.Empty);
+        else
+            Navegacao.Abrir(new ManterProdutosForm());
     }
 
     private Button CriarBotaoAcao(string texto, bool primario)
@@ -1149,6 +1194,10 @@ public partial class CadastroProdutoForm : Form
         if (sucesso)
         {
             LimparFormulario();
+
+            // Dentro da tela de Produtos, volta para a lista já atualizada.
+            if (embutido)
+                VoltarParaLista?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -1712,7 +1761,7 @@ public partial class CadastroProdutoForm : Form
     // ============================
 
     private void AbrirTela(Form novaTela)
-{
-    Navegacao.Abrir(novaTela);
-}
+    {
+        Navegacao.Abrir(novaTela);
+    }
 }

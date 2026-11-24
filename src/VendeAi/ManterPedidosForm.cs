@@ -1064,7 +1064,7 @@ public class ManterPedidosForm : Form
                         break;
 
                     case "Produtos":
-                        AbrirTela(new CadastroProdutoForm());
+                        AbrirTela(new ManterProdutosForm());
                         break;
 
                     case "Clientes":

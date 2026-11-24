@@ -1009,7 +1009,7 @@ public class ManterComprasForm : Form
         switch (destino)
         {
             case "Compras": return;
-            case "Produtos": Navegacao.Abrir(new CadastroProdutoForm()); return;
+            case "Produtos": Navegacao.Abrir(new ManterProdutosForm()); return;
             case "Clientes": Navegacao.Abrir(new ManterClientesForm()); return;
             case "Pedidos": Navegacao.Abrir(new ManterPedidosForm()); return;
             default:

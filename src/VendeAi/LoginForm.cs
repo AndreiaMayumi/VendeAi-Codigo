@@ -1019,7 +1019,7 @@ private void ValidarLogin()
         MessageBoxIcon.Information
     );
 
-    Navegacao.Abrir(new CadastroProdutoForm());
+    Navegacao.Abrir(new ManterProdutosForm());
 }
 
 

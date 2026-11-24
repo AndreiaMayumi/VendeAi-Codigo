@@ -1,15 +1,10 @@
-
 namespace VendeAi.Models;
-
 public class ProdutoModalidade
 {
     public int Id { get; set; }
-
     public Modalidade Modalidade { get; set; }
-
     public int QuantidadeMinimaVenda { get; set; }
-
     public decimal PrecoVenda { get; set; }
-
     public decimal? PrecoCusto { get; set; }
+    public StatusProduto Status { get; set; } = StatusProduto.Ativo;
 }

@@ -871,7 +871,7 @@ public class CadastrarPedidoForm : Form
         produtos = AppContexto.Produtos
             .ListarTodos()
             .Where(p =>
-                p.Status == StatusProduto.Ativo)
+                p.Status == StatusProduto.Ativo && (p.Modalidades.Count > 0 || p.Variacoes.Any(v => v.Status == StatusProduto.Ativo && v.Modalidades.Any(m => m.Status == StatusProduto.Ativo))))
             .ToList();
 
         listaClientes.DisplayMember =
@@ -1020,7 +1020,7 @@ public class CadastrarPedidoForm : Form
             opcoes.Add(new OpcaoVariacao(null, "Produto principal"));
 
         foreach (var variacao in produto.Variacoes.Where(v =>
-            v.Status == StatusProduto.Ativo && v.Modalidades.Count > 0))
+            v.Status == StatusProduto.Ativo && v.Modalidades.Any(m => m.Status == StatusProduto.Ativo)))
         {
             string descricao = string.Join(" / ", new[] { variacao.Cor, variacao.Tamanho }
                 .Where(valor => !string.IsNullOrWhiteSpace(valor)));
@@ -1063,7 +1063,7 @@ public class CadastrarPedidoForm : Form
             ? new List<ProdutoModalidade>()
             : variacaoSelecionada == null
                 ? produtoSelecionado.Modalidades.ToList()
-                : variacaoSelecionada.Modalidades.ToList();
+                : variacaoSelecionada.Modalidades.Where(m => m.Status == StatusProduto.Ativo).ToList();
 
         cmbModalidade.DataSource = null;
         cmbModalidade.DisplayMember = nameof(ProdutoModalidade.Modalidade);
@@ -1186,6 +1186,8 @@ public class CadastrarPedidoForm : Form
         atualizandoBusca = false;
 
         produtoSelecionado = null;
+        variacaoSelecionada = null;
+        cmbVariacao.DataSource = null;
 
         cmbModalidade.DataSource = null;
         AtualizarModalidade();
